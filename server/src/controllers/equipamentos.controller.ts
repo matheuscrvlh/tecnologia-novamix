@@ -4,7 +4,7 @@ import { connHub } from '../database/hub.database'
 
 interface EquipamentoBody {
     patrimonio?: number
-    loja?: string
+    filial_id?: number
     local?: string
     equipamento?: string
     marca?: string
@@ -14,7 +14,7 @@ interface EquipamentoBody {
     verificar?: boolean
 }
 
-const CAMPOS_OBRIGATORIOS = ['patrimonio', 'loja', 'local', 'equipamento', 'marca', 'modelo'] as const
+const CAMPOS_OBRIGATORIOS = ['patrimonio', 'filial_id', 'local', 'equipamento', 'marca', 'modelo'] as const
 
 function validarCampos(body: EquipamentoBody, res: FastifyReply) {
     const faltando = CAMPOS_OBRIGATORIOS.filter(
@@ -29,13 +29,19 @@ function validarCampos(body: EquipamentoBody, res: FastifyReply) {
     return true
 }
 
+const SELECT_COM_FILIAL = `
+    SELECT e.*, b.name AS loja_nome
+    FROM tecnologia.equipamentos e
+    LEFT JOIN public.branchs b ON b.id = e.filial_id
+`
+
 export async function getEquipamentos(req: FastifyRequest, res: FastifyReply) {
     const permission = await checkPermission(req, res)
     if (!permission) return
 
     const conn = await connHub()
     try {
-        const { rows } = await conn.query('SELECT * FROM tecnologia.equipamentos ORDER BY id DESC')
+        const { rows } = await conn.query(`${SELECT_COM_FILIAL} ORDER BY e.id DESC`)
         res.send(rows)
     } finally {
         conn.release()
@@ -52,12 +58,12 @@ export async function createEquipamento(req: FastifyRequest, res: FastifyReply) 
     const conn = await connHub()
     try {
         const { rows } = await conn.query(
-            `INSERT INTO tecnologia.equipamentos (patrimonio, loja, local, equipamento, marca, modelo, ip, status, verificar)
+            `INSERT INTO tecnologia.equipamentos (patrimonio, filial_id, local, equipamento, marca, modelo, ip, status, verificar)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-             RETURNING *`,
+             RETURNING id`,
             [
                 body.patrimonio,
-                body.loja,
+                body.filial_id,
                 body.local,
                 body.equipamento,
                 body.marca,
@@ -67,7 +73,9 @@ export async function createEquipamento(req: FastifyRequest, res: FastifyReply) 
                 body.verificar ?? false,
             ]
         )
-        res.code(201).send(rows[0])
+
+        const { rows: criado } = await conn.query(`${SELECT_COM_FILIAL} WHERE e.id = $1`, [rows[0].id])
+        res.code(201).send(criado[0])
     } finally {
         conn.release()
     }
@@ -85,13 +93,13 @@ export async function updateEquipamento(req: FastifyRequest, res: FastifyReply) 
     try {
         const { rows } = await conn.query(
             `UPDATE tecnologia.equipamentos
-             SET patrimonio = $1, loja = $2, local = $3, equipamento = $4, marca = $5,
+             SET patrimonio = $1, filial_id = $2, local = $3, equipamento = $4, marca = $5,
                  modelo = $6, ip = $7, status = $8, verificar = $9
              WHERE id = $10
-             RETURNING *`,
+             RETURNING id`,
             [
                 body.patrimonio,
-                body.loja,
+                body.filial_id,
                 body.local,
                 body.equipamento,
                 body.marca,
@@ -108,7 +116,8 @@ export async function updateEquipamento(req: FastifyRequest, res: FastifyReply) 
             return
         }
 
-        res.send(rows[0])
+        const { rows: atualizado } = await conn.query(`${SELECT_COM_FILIAL} WHERE e.id = $1`, [id])
+        res.send(atualizado[0])
     } finally {
         conn.release()
     }

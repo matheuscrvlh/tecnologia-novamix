@@ -4,7 +4,7 @@ import { connHub } from '../database/hub.database'
 
 interface EquipamentoPessoalBody {
     patrimonio?: number
-    loja?: string
+    filial_id?: number
     tipo?: string
     marca?: string
     modelo?: string
@@ -18,7 +18,7 @@ interface EquipamentoPessoalBody {
     data_devolucao?: string | null
 }
 
-const CAMPOS_OBRIGATORIOS = ['patrimonio', 'loja', 'tipo', 'marca', 'modelo', 'user_hub_id'] as const
+const CAMPOS_OBRIGATORIOS = ['patrimonio', 'filial_id', 'tipo', 'marca', 'modelo', 'user_hub_id'] as const
 
 function validarCampos(body: EquipamentoPessoalBody, res: FastifyReply) {
     const faltando = CAMPOS_OBRIGATORIOS.filter(
@@ -34,9 +34,10 @@ function validarCampos(body: EquipamentoPessoalBody, res: FastifyReply) {
 }
 
 const SELECT_COM_USUARIO = `
-    SELECT ep.*, u.name AS usuario_nome
+    SELECT ep.*, u.name AS usuario_nome, b.name AS loja_nome
     FROM tecnologia.equipamentos_pessoais ep
     LEFT JOIN public.users u ON u.id = ep.user_hub_id
+    LEFT JOIN public.branchs b ON b.id = ep.filial_id
 `
 
 export async function getEquipamentosPessoais(req: FastifyRequest, res: FastifyReply) {
@@ -63,12 +64,12 @@ export async function createEquipamentoPessoal(req: FastifyRequest, res: Fastify
     try {
         const { rows } = await conn.query(
             `INSERT INTO tecnologia.equipamentos_pessoais
-                (patrimonio, loja, tipo, marca, modelo, user_hub_id, telefone, avarias, avarias_obs, status, termo, data_recebimento, data_devolucao)
+                (patrimonio, filial_id, tipo, marca, modelo, user_hub_id, telefone, avarias, avarias_obs, status, termo, data_recebimento, data_devolucao)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
              RETURNING id`,
             [
                 body.patrimonio,
-                body.loja,
+                body.filial_id,
                 body.tipo,
                 body.marca,
                 body.modelo,
@@ -102,14 +103,14 @@ export async function updateEquipamentoPessoal(req: FastifyRequest, res: Fastify
     try {
         const { rows } = await conn.query(
             `UPDATE tecnologia.equipamentos_pessoais
-             SET patrimonio = $1, loja = $2, tipo = $3, marca = $4, modelo = $5, user_hub_id = $6,
+             SET patrimonio = $1, filial_id = $2, tipo = $3, marca = $4, modelo = $5, user_hub_id = $6,
                  telefone = $7, avarias = $8, avarias_obs = $9, status = $10, termo = $11,
                  data_recebimento = $12, data_devolucao = $13
              WHERE id = $14
              RETURNING id`,
             [
                 body.patrimonio,
-                body.loja,
+                body.filial_id,
                 body.tipo,
                 body.marca,
                 body.modelo,

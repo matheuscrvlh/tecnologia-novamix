@@ -3,9 +3,9 @@ import { checkPermission } from '../middlewares/auth.middlewares'
 import { connHub } from '../database/hub.database'
 
 interface GastoBody {
-    user_id?: number | null
+    user_hub_id?: number | null
     fornecedor_id?: number
-    loja_id?: number
+    filial_id?: number
     patrimonio?: number | null
     tipo?: string
     obs?: string | null
@@ -13,9 +13,10 @@ interface GastoBody {
     valor?: number
     pagamento?: string
     liberacao?: string
+    data_gasto?: string
 }
 
-const CAMPOS_OBRIGATORIOS = ['fornecedor_id', 'loja_id', 'tipo', 'area', 'valor', 'pagamento', 'liberacao'] as const
+const CAMPOS_OBRIGATORIOS = ['fornecedor_id', 'filial_id', 'tipo', 'area', 'valor', 'pagamento', 'liberacao'] as const
 
 function validarCampos(body: GastoBody, res: FastifyReply) {
     const faltando = CAMPOS_OBRIGATORIOS.filter(
@@ -34,8 +35,8 @@ const SELECT_COM_RELACOES = `
     SELECT g.*, f.empresa AS fornecedor_nome, b.name AS loja_nome, u.name AS usuario_nome
     FROM tecnologia.gastos g
     LEFT JOIN tecnologia.fornecedores f ON f.id = g.fornecedor_id
-    LEFT JOIN public.branchs b ON b.id = g.loja_id
-    LEFT JOIN public.users u ON u.id = g.user_id
+    LEFT JOIN public.branchs b ON b.id = g.filial_id
+    LEFT JOIN public.users u ON u.id = g.user_hub_id
 `
 
 export async function getGastos(req: FastifyRequest, res: FastifyReply) {
@@ -62,13 +63,13 @@ export async function createGasto(req: FastifyRequest, res: FastifyReply) {
     try {
         const { rows } = await conn.query(
             `INSERT INTO tecnologia.gastos
-                (user_id, fornecedor_id, loja_id, patrimonio, tipo, obs, area, valor, pagamento, liberacao)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                (user_hub_id, fornecedor_id, filial_id, patrimonio, tipo, obs, area, valor, pagamento, liberacao, data_gasto)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, CURRENT_DATE))
              RETURNING id`,
             [
-                body.user_id ?? null,
+                body.user_hub_id ?? null,
                 body.fornecedor_id,
-                body.loja_id,
+                body.filial_id,
                 body.patrimonio ?? null,
                 body.tipo,
                 body.obs ?? null,
@@ -76,6 +77,7 @@ export async function createGasto(req: FastifyRequest, res: FastifyReply) {
                 body.valor,
                 body.pagamento,
                 body.liberacao,
+                body.data_gasto ?? null,
             ]
         )
 
@@ -98,14 +100,15 @@ export async function updateGasto(req: FastifyRequest, res: FastifyReply) {
     try {
         const { rows } = await conn.query(
             `UPDATE tecnologia.gastos
-             SET user_id = $1, fornecedor_id = $2, loja_id = $3, patrimonio = $4, tipo = $5,
-                 obs = $6, area = $7, valor = $8, pagamento = $9, liberacao = $10
-             WHERE id = $11
+             SET user_hub_id = $1, fornecedor_id = $2, filial_id = $3, patrimonio = $4, tipo = $5,
+                 obs = $6, area = $7, valor = $8, pagamento = $9, liberacao = $10,
+                 data_gasto = COALESCE($11, data_gasto)
+             WHERE id = $12
              RETURNING id`,
             [
-                body.user_id ?? null,
+                body.user_hub_id ?? null,
                 body.fornecedor_id,
-                body.loja_id,
+                body.filial_id,
                 body.patrimonio ?? null,
                 body.tipo,
                 body.obs ?? null,
@@ -113,6 +116,7 @@ export async function updateGasto(req: FastifyRequest, res: FastifyReply) {
                 body.valor,
                 body.pagamento,
                 body.liberacao,
+                body.data_gasto ?? null,
                 id,
             ]
         )
