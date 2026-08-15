@@ -2,11 +2,22 @@ import { useState } from 'react'
 import PageShell from '../components/PageShell'
 import DataTable from '../components/DataTable'
 import Field, { inputClass } from '../components/Field'
+import PillFilter from '../components/PillFilter'
 import { useMe } from '../hooks/useMe'
 import { useLista } from '../hooks/useLista'
 import { apiPost, apiPut, apiDelete } from '../lib/api'
 import { formatDate, formatPhoneInput } from '../lib/format'
 import type { EquipamentoPessoal, Loja, UsuarioHub } from '../types/tecnologia'
+
+const STATUS_OPCOES = [
+    { value: true, label: 'Ativo' },
+    { value: false, label: 'Inativo' },
+]
+
+const AVARIAS_OPCOES = [
+    { value: true, label: 'Sim' },
+    { value: false, label: 'Não' },
+]
 
 const FORM_VAZIO = {
     patrimonio: '',
@@ -37,15 +48,25 @@ export default function EquipamentosPessoais() {
     const [salvando, setSalvando] = useState(false)
     const [erroForm, setErroForm] = useState<string | null>(null)
 
+    const [lojasSelecionadas, setLojasSelecionadas] = useState<number[]>([])
+    const [statusSelecionado, setStatusSelecionado] = useState<boolean[]>([])
+    const [avariasSelecionado, setAvariasSelecionado] = useState<boolean[]>([])
+
+    const lojasAtivas = lojasSelecionadas.length > 0 ? lojasSelecionadas : lojas.map((l) => l.id)
+    const statusAtivo = statusSelecionado.length > 0 ? statusSelecionado : [true, false]
+    const avariasAtivo = avariasSelecionado.length > 0 ? avariasSelecionado : [true, false]
+
     const termo = busca.trim().toLowerCase()
-    const rowsFiltradas = termo
-        ? rows.filter((row) =>
-              [row.patrimonio, row.loja_nome, row.tipo, row.marca, row.modelo, row.usuario_nome]
-                  .join(' ')
-                  .toLowerCase()
-                  .includes(termo)
-          )
-        : rows
+    const rowsFiltradas = rows.filter((row) => {
+        if (!lojasAtivas.includes(row.filial_id)) return false
+        if (!statusAtivo.includes(row.status)) return false
+        if (!avariasAtivo.includes(row.avarias)) return false
+        if (!termo) return true
+        return [row.patrimonio, row.loja_nome, row.tipo, row.marca, row.modelo, row.usuario_nome]
+            .join(' ')
+            .toLowerCase()
+            .includes(termo)
+    })
 
     function abrirNovo() {
         setEditandoId(null)
@@ -184,6 +205,22 @@ export default function EquipamentosPessoais() {
                 >
                     Novo equipamento pessoal
                 </button>
+            </div>
+
+            <div className='mb-6 flex flex-col gap-3 rounded-xl border border-gray-base/30 bg-white p-4 shadow-sm dark:border-dark-border dark:bg-dark-surface'>
+                <PillFilter
+                    label='Loja'
+                    options={lojas.map((loja) => ({ value: loja.id, label: loja.name }))}
+                    selected={lojasAtivas}
+                    onChange={setLojasSelecionadas}
+                />
+                <PillFilter label='Status' options={STATUS_OPCOES} selected={statusAtivo} onChange={setStatusSelecionado} />
+                <PillFilter
+                    label='Avarias'
+                    options={AVARIAS_OPCOES}
+                    selected={avariasAtivo}
+                    onChange={setAvariasSelecionado}
+                />
             </div>
 
             {formAberto && (

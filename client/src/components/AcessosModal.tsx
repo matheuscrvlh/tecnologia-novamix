@@ -10,6 +10,54 @@ type AcessosModalProps = {
     onFechar: () => void
 }
 
+function escapeHtml(texto: string) {
+    return texto
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+}
+
+function montarHtmlImpressao(nomeUsuario: string, acessos: AcessoUsuario[]) {
+    const linhas = acessos
+        .map(
+            (a) => `
+                <tr>
+                    <td>${escapeHtml(a.system_name)}</td>
+                    <td>${escapeHtml(a.user_login)}</td>
+                    <td>${a.user_password ? escapeHtml(a.user_password) : '-'}</td>
+                    <td>${formatDate(a.updated_at)}</td>
+                </tr>`
+        )
+        .join('')
+
+    return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Acessos de ${escapeHtml(nomeUsuario)}</title>
+<style>
+    body { font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; padding: 32px; }
+    h1 { font-size: 18px; margin: 0 0 4px; }
+    p { font-size: 12px; color: #666; margin: 0 0 24px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid #ddd; font-size: 13px; }
+    th { text-transform: uppercase; font-size: 11px; color: #666; letter-spacing: 0.03em; }
+</style>
+</head>
+<body>
+    <h1>Acessos de ${escapeHtml(nomeUsuario)}</h1>
+    <p>Gerado em ${formatDate(new Date().toISOString())}</p>
+    <table>
+        <thead>
+            <tr><th>Sistema</th><th>Login</th><th>Senha</th><th>Atualizado em</th></tr>
+        </thead>
+        <tbody>${linhas}</tbody>
+    </table>
+</body>
+</html>`
+}
+
 export default function AcessosModal({ usuario, onFechar }: AcessosModalProps) {
     const { rows: acessos, loading, erro } = useLista<AcessoUsuario>(`/tecnologia/usuarios/${usuario.id}/acessos`)
 
@@ -29,10 +77,20 @@ export default function AcessosModal({ usuario, onFechar }: AcessosModalProps) {
         setTimeout(() => setCopiado(false), 2000)
     }
 
+    function imprimir() {
+        const janela = window.open('', '_blank')
+        if (!janela) return
+
+        janela.document.write(montarHtmlImpressao(usuario.name, acessos))
+        janela.document.close()
+        janela.focus()
+        janela.print()
+    }
+
     return (
         <Modal titulo={`Acessos de ${usuario.name}`} onFechar={onFechar}>
-            <div className='print-area flex flex-col gap-4'>
-                <div className='flex flex-wrap items-center justify-between gap-2 print:hidden'>
+            <div className='flex flex-col gap-4'>
+                <div className='flex flex-wrap items-center justify-between gap-2'>
                     <p className='text-xs text-gray-dark dark:text-dark-text-muted'>
                         Logins e senhas cadastrados pelo hub. As senhas ficam ocultas até você clicar em "mostrar".
                     </p>
@@ -47,7 +105,7 @@ export default function AcessosModal({ usuario, onFechar }: AcessosModalProps) {
                         </button>
                         <button
                             type='button'
-                            onClick={() => window.print()}
+                            onClick={imprimir}
                             disabled={acessos.length === 0}
                             className='rounded-lg border border-gray-base/30 px-3 py-1.5 text-xs font-semibold text-gray-text transition-colors hover:bg-gray disabled:opacity-50 dark:border-dark-border dark:text-dark-text dark:hover:bg-dark-surface-2'
                         >
@@ -91,7 +149,7 @@ export default function AcessosModal({ usuario, onFechar }: AcessosModalProps) {
                                         <button
                                             type='button'
                                             onClick={() => alternarVisibilidade(row.system_id)}
-                                            className='font-semibold text-orange-base hover:text-orange-light print:hidden'
+                                            className='font-semibold text-orange-base hover:text-orange-light'
                                         >
                                             Mostrar
                                         </button>

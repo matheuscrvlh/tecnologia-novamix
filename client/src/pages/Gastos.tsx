@@ -2,6 +2,8 @@ import { useState } from 'react'
 import PageShell from '../components/PageShell'
 import DataTable from '../components/DataTable'
 import Field, { inputClass } from '../components/Field'
+import PillFilter from '../components/PillFilter'
+import DateRangeFilter from '../components/DateRangeFilter'
 import { useMe } from '../hooks/useMe'
 import { useLista } from '../hooks/useLista'
 import { apiPost, apiPut, apiDelete } from '../lib/api'
@@ -44,15 +46,24 @@ export default function Gastos() {
     const [salvandoFornecedor, setSalvandoFornecedor] = useState(false)
     const [erroFornecedor, setErroFornecedor] = useState<string | null>(null)
 
+    const [lojasSelecionadas, setLojasSelecionadas] = useState<number[]>([])
+    const [dataInicio, setDataInicio] = useState('')
+    const [dataFim, setDataFim] = useState('')
+
+    const lojasAtivas = lojasSelecionadas.length > 0 ? lojasSelecionadas : lojas.map((l) => l.id)
+
     const termo = busca.trim().toLowerCase()
-    const rowsFiltradas = termo
-        ? rows.filter((row) =>
-              [row.fornecedor_nome, row.loja_nome, row.tipo, row.area, row.pagamento, row.liberacao, row.usuario_nome]
-                  .join(' ')
-                  .toLowerCase()
-                  .includes(termo)
-          )
-        : rows
+    const rowsFiltradas = rows.filter((row) => {
+        if (!lojasAtivas.includes(row.filial_id)) return false
+        const data = row.data_gasto.slice(0, 10)
+        if (dataInicio && data < dataInicio) return false
+        if (dataFim && data > dataFim) return false
+        if (!termo) return true
+        return [row.fornecedor_nome, row.loja_nome, row.tipo, row.area, row.pagamento, row.liberacao, row.usuario_nome]
+            .join(' ')
+            .toLowerCase()
+            .includes(termo)
+    })
 
     function abrirNovo() {
         setEditandoId(null)
@@ -193,6 +204,22 @@ export default function Gastos() {
                 >
                     Novo gasto
                 </button>
+            </div>
+
+            <div className='mb-6 flex flex-col gap-3 rounded-xl border border-gray-base/30 bg-white p-4 shadow-sm dark:border-dark-border dark:bg-dark-surface'>
+                <PillFilter
+                    label='Loja'
+                    options={lojas.map((loja) => ({ value: loja.id, label: loja.name }))}
+                    selected={lojasAtivas}
+                    onChange={setLojasSelecionadas}
+                />
+                <DateRangeFilter
+                    label='Período'
+                    inicio={dataInicio}
+                    fim={dataFim}
+                    onChangeInicio={setDataInicio}
+                    onChangeFim={setDataFim}
+                />
             </div>
 
             {formAberto && (
