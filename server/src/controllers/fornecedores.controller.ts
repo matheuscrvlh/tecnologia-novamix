@@ -33,15 +33,27 @@ export async function createFornecedor(req: FastifyRequest, res: FastifyReply) {
         return
     }
 
+    const cnpj = body.cnpj ? body.cnpj.replace(/\D/g, '') : null
+    if (cnpj && cnpj.length !== 14) {
+        res.code(400).send({ error: 'CNPJ deve conter 14 dígitos.' })
+        return
+    }
+
     const conn = await connHub()
     try {
         const { rows } = await conn.query(
             `INSERT INTO tecnologia.fornecedores (empresa, cnpj, endereco, cep, status)
              VALUES ($1, $2, $3, $4, $5)
              RETURNING *`,
-            [body.empresa, body.cnpj ?? null, body.endereco ?? null, body.cep ?? null, body.status ?? true]
+            [body.empresa, cnpj, body.endereco ?? null, body.cep ?? null, body.status ?? true]
         )
         res.code(201).send(rows[0])
+    } catch (error: any) {
+        if (error?.code === '23514') {
+            res.code(400).send({ error: 'CNPJ inválido.' })
+            return
+        }
+        throw error
     } finally {
         conn.release()
     }

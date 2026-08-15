@@ -30,6 +30,16 @@ function validarCampos(body: EquipamentoPessoalBody, res: FastifyReply) {
         return false
     }
 
+    if (body.avarias && !body.avarias_obs) {
+        res.code(400).send({ error: 'Descreva a avaria em avarias_obs.' })
+        return false
+    }
+
+    if (body.data_recebimento && body.data_devolucao && body.data_devolucao < body.data_recebimento) {
+        res.code(400).send({ error: 'A data de devolução não pode ser anterior à data de recebimento.' })
+        return false
+    }
+
     return true
 }
 
@@ -86,6 +96,12 @@ export async function createEquipamentoPessoal(req: FastifyRequest, res: Fastify
 
         const { rows: criado } = await conn.query(`${SELECT_COM_USUARIO} WHERE ep.id = $1`, [rows[0].id])
         res.code(201).send(criado[0])
+    } catch (error: any) {
+        if (error?.code === '23514') {
+            res.code(400).send({ error: 'Dados inválidos para equipamento pessoal.' })
+            return
+        }
+        throw error
     } finally {
         conn.release()
     }
@@ -133,6 +149,12 @@ export async function updateEquipamentoPessoal(req: FastifyRequest, res: Fastify
 
         const { rows: atualizado } = await conn.query(`${SELECT_COM_USUARIO} WHERE ep.id = $1`, [id])
         res.send(atualizado[0])
+    } catch (error: any) {
+        if (error?.code === '23514') {
+            res.code(400).send({ error: 'Dados inválidos para equipamento pessoal.' })
+            return
+        }
+        throw error
     } finally {
         conn.release()
     }
