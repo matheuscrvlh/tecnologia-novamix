@@ -1,0 +1,45 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+html,
+body {
+    overflow-x: hidden;
+}
+
+button:not(:disabled),
+[role='button'] {
+    cursor: pointer;
+}
+
+@theme {
+    --color-*: initial;
+    --color-white: #ffffff;
+    --color-black: #000000;
+    --color-gray: #F5F5F5;
+    --color-gray-dark: #354856;
+    --color-gray-base: #1E8581;
+    --color-gray-text: #33363F;
+    --color-orange-light: #FF8D0A;
+    --color-orange-base: #EA8006;
+    --color-orange-banner: #FE8100;
+    --color-blue-base: #243785;
+    --color-yellow-base: #FFE700;
+    --color-red-light: #F72B2A;
+    --color-red-base: #DF0406;
+    --color-green-base: #7BAD7F;
+    --color-gold: #E6A800;
+    --color-silver: #5C8AD1;
+    --color-bronze: #E8621C;
+
+    --color-dark-bg: #0E141B;
+    --color-dark-surface: #1A2330;
+    --color-dark-surface-2: #232F3F;
+    --color-dark-border: #2E3B4D;
+    --color-dark-text: #E7EAEE;
+    --color-dark-text-muted: #93A2B4;
+}
+
+html.dark {
+    color-scheme: dark;
+}
