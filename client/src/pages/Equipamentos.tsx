@@ -5,11 +5,11 @@ import Field, { inputClass } from '../components/Field'
 import { useMe } from '../hooks/useMe'
 import { useLista } from '../hooks/useLista'
 import { apiPost, apiPut, apiDelete } from '../lib/api'
-import type { Equipamento } from '../types/tecnologia'
+import type { Equipamento, Loja } from '../types/tecnologia'
 
 const FORM_VAZIO = {
     patrimonio: '',
-    loja: '',
+    filial_id: '',
     local: '',
     equipamento: '',
     marca: '',
@@ -22,6 +22,7 @@ const FORM_VAZIO = {
 export default function Equipamentos() {
     const { me, loading: loadingMe, error: meError } = useMe()
     const { rows, loading, erro, recarregar } = useLista<Equipamento>('/tecnologia/equipamentos')
+    const { rows: lojas } = useLista<Loja>('/tecnologia/lojas')
 
     const [busca, setBusca] = useState('')
     const [formAberto, setFormAberto] = useState(false)
@@ -33,7 +34,7 @@ export default function Equipamentos() {
     const termo = busca.trim().toLowerCase()
     const rowsFiltradas = termo
         ? rows.filter((row) =>
-              [row.patrimonio, row.loja, row.local, row.equipamento, row.marca, row.modelo]
+              [row.patrimonio, row.loja_nome, row.local, row.equipamento, row.marca, row.modelo]
                   .join(' ')
                   .toLowerCase()
                   .includes(termo)
@@ -51,7 +52,7 @@ export default function Equipamentos() {
         setEditandoId(row.id)
         setForm({
             patrimonio: String(row.patrimonio),
-            loja: row.loja,
+            filial_id: String(row.filial_id),
             local: row.local,
             equipamento: row.equipamento,
             marca: row.marca,
@@ -70,12 +71,17 @@ export default function Equipamentos() {
     }
 
     async function salvar() {
+        if (!form.filial_id) {
+            setErroForm('Selecione uma loja.')
+            return
+        }
+
         setSalvando(true)
         setErroForm(null)
 
         const payload = {
             patrimonio: Number(form.patrimonio),
-            loja: form.loja,
+            filial_id: Number(form.filial_id),
             local: form.local,
             equipamento: form.equipamento,
             marca: form.marca,
@@ -153,12 +159,18 @@ export default function Equipamentos() {
                             />
                         </Field>
                         <Field label='Loja'>
-                            <input
-                                type='text'
+                            <select
                                 className={inputClass}
-                                value={form.loja}
-                                onChange={(e) => setForm({ ...form, loja: e.target.value })}
-                            />
+                                value={form.filial_id}
+                                onChange={(e) => setForm({ ...form, filial_id: e.target.value })}
+                            >
+                                <option value=''>Selecione...</option>
+                                {lojas.map((loja) => (
+                                    <option key={loja.id} value={loja.id}>
+                                        {loja.name}
+                                    </option>
+                                ))}
+                            </select>
                         </Field>
                         <Field label='Local'>
                             <input
@@ -244,7 +256,7 @@ export default function Equipamentos() {
                 rows={rowsFiltradas}
                 columns={[
                     { key: 'patrimonio', label: 'Patrimônio', render: (row) => row.patrimonio },
-                    { key: 'loja', label: 'Loja', render: (row) => row.loja },
+                    { key: 'loja', label: 'Loja', render: (row) => row.loja_nome ?? '-' },
                     { key: 'local', label: 'Local', render: (row) => row.local },
                     { key: 'equipamento', label: 'Equipamento', render: (row) => row.equipamento },
                     { key: 'marca', label: 'Marca', render: (row) => row.marca },

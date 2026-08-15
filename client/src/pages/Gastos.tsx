@@ -5,12 +5,12 @@ import Field, { inputClass } from '../components/Field'
 import { useMe } from '../hooks/useMe'
 import { useLista } from '../hooks/useLista'
 import { apiPost, apiPut, apiDelete } from '../lib/api'
-import { formatCurrency } from '../lib/format'
+import { formatCurrency, formatDate } from '../lib/format'
 import type { Equipamento, Fornecedor, Gasto, Loja, UsuarioHub } from '../types/tecnologia'
 
 const FORM_VAZIO = {
     fornecedor_id: '',
-    loja_id: '',
+    filial_id: '',
     patrimonio: '',
     tipo: '',
     obs: '',
@@ -18,7 +18,8 @@ const FORM_VAZIO = {
     valor: '',
     pagamento: '',
     liberacao: '',
-    user_id: '',
+    data_gasto: '',
+    user_hub_id: '',
 }
 
 const FORNECEDOR_VAZIO = { empresa: '', cnpj: '', endereco: '', cep: '' }
@@ -64,7 +65,7 @@ export default function Gastos() {
         setEditandoId(row.id)
         setForm({
             fornecedor_id: String(row.fornecedor_id),
-            loja_id: String(row.loja_id),
+            filial_id: String(row.filial_id),
             patrimonio: row.patrimonio ? String(row.patrimonio) : '',
             tipo: row.tipo,
             obs: row.obs ?? '',
@@ -72,7 +73,8 @@ export default function Gastos() {
             valor: row.valor,
             pagamento: row.pagamento,
             liberacao: row.liberacao,
-            user_id: row.user_id ? String(row.user_id) : '',
+            data_gasto: row.data_gasto.slice(0, 10),
+            user_hub_id: row.user_hub_id ? String(row.user_hub_id) : '',
         })
         setErroForm(null)
         setFormAberto(true)
@@ -85,12 +87,22 @@ export default function Gastos() {
     }
 
     async function salvar() {
+        if (!form.fornecedor_id) {
+            setErroForm('Selecione um fornecedor.')
+            return
+        }
+
+        if (!form.filial_id) {
+            setErroForm('Selecione uma loja.')
+            return
+        }
+
         setSalvando(true)
         setErroForm(null)
 
         const payload = {
             fornecedor_id: Number(form.fornecedor_id),
-            loja_id: Number(form.loja_id),
+            filial_id: Number(form.filial_id),
             patrimonio: form.patrimonio ? Number(form.patrimonio) : null,
             tipo: form.tipo,
             obs: form.obs || null,
@@ -98,7 +110,8 @@ export default function Gastos() {
             valor: Number(form.valor),
             pagamento: form.pagamento,
             liberacao: form.liberacao,
-            user_id: form.user_id ? Number(form.user_id) : null,
+            data_gasto: form.data_gasto || null,
+            user_hub_id: form.user_hub_id ? Number(form.user_hub_id) : null,
         }
 
         try {
@@ -215,8 +228,8 @@ export default function Gastos() {
                         <Field label='Loja'>
                             <select
                                 className={inputClass}
-                                value={form.loja_id}
-                                onChange={(e) => setForm({ ...form, loja_id: e.target.value })}
+                                value={form.filial_id}
+                                onChange={(e) => setForm({ ...form, filial_id: e.target.value })}
                             >
                                 <option value=''>Selecione...</option>
                                 {lojas.map((loja) => (
@@ -235,7 +248,7 @@ export default function Gastos() {
                                 <option value=''>Nenhum</option>
                                 {equipamentos.map((eq) => (
                                     <option key={eq.id} value={eq.patrimonio}>
-                                        {eq.patrimonio} - {eq.equipamento} ({eq.loja})
+                                        {eq.patrimonio} - {eq.equipamento} ({eq.loja_nome ?? '-'})
                                     </option>
                                 ))}
                             </select>
@@ -284,8 +297,8 @@ export default function Gastos() {
                         <Field label='Registrado por (opcional)'>
                             <select
                                 className={inputClass}
-                                value={form.user_id}
-                                onChange={(e) => setForm({ ...form, user_id: e.target.value })}
+                                value={form.user_hub_id}
+                                onChange={(e) => setForm({ ...form, user_hub_id: e.target.value })}
                             >
                                 <option value=''>Não informado</option>
                                 {usuarios.map((usuario) => (
@@ -294,6 +307,14 @@ export default function Gastos() {
                                     </option>
                                 ))}
                             </select>
+                        </Field>
+                        <Field label='Data do gasto'>
+                            <input
+                                type='date'
+                                className={inputClass}
+                                value={form.data_gasto}
+                                onChange={(e) => setForm({ ...form, data_gasto: e.target.value })}
+                            />
                         </Field>
                         <div className='sm:col-span-2 lg:col-span-3'>
                             <Field label='Observações'>
@@ -406,6 +427,7 @@ export default function Gastos() {
                     { key: 'valor', label: 'Valor', align: 'right', render: (row) => formatCurrency(row.valor) },
                     { key: 'pagamento', label: 'Pagamento', render: (row) => row.pagamento },
                     { key: 'liberacao', label: 'Liberação', render: (row) => row.liberacao },
+                    { key: 'data_gasto', label: 'Data', render: (row) => formatDate(row.data_gasto) },
                     { key: 'patrimonio', label: 'Patrimônio', render: (row) => row.patrimonio ?? '-' },
                     { key: 'usuario', label: 'Registrado por', render: (row) => row.usuario_nome ?? '-' },
                     {

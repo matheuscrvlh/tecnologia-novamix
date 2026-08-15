@@ -16,7 +16,8 @@ export interface UsuarioHub {
 export interface Equipamento {
     id: number
     patrimonio: number
-    loja: string
+    filial_id: number
+    loja_nome: string | null
     local: string
     equipamento: string
     marca: string
@@ -27,12 +28,11 @@ export interface Equipamento {
     criado_em: string
 }
 
-export type EquipamentoInput = Omit<Equipamento, 'id' | 'criado_em'>
-
 export interface EquipamentoPessoal {
     id: number
     patrimonio: number
-    loja: string
+    filial_id: number
+    loja_nome: string | null
     tipo: string
     marca: string
     modelo: string
@@ -46,8 +46,6 @@ export interface EquipamentoPessoal {
     data_recebimento: string | null
     data_devolucao: string | null
 }
-
-export type EquipamentoPessoalInput = Omit<EquipamentoPessoal, 'id' | 'usuario_nome'>
 
 export interface Loja {
     id: number
@@ -64,13 +62,11 @@ export interface Fornecedor {
     status: boolean
 }
 
-export type FornecedorInput = Omit<Fornecedor, 'id'>
-
 export interface Gasto {
     id: number
-    user_id: number | null
+    user_hub_id: number | null
     fornecedor_id: number
-    loja_id: number
+    filial_id: number
     patrimonio: number | null
     tipo: string
     obs: string | null
@@ -78,9 +74,8 @@ export interface Gasto {
     valor: string
     pagamento: string
     liberacao: string
+    data_gasto: string
     fornecedor_nome: string | null
     loja_nome: string | null
     usuario_nome: string | null
 }
-
-export type GastoInput = Omit<Gasto, 'id' | 'fornecedor_nome' | 'loja_nome' | 'usuario_nome'>

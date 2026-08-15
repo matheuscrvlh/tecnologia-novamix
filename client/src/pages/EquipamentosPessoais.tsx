@@ -6,11 +6,11 @@ import { useMe } from '../hooks/useMe'
 import { useLista } from '../hooks/useLista'
 import { apiPost, apiPut, apiDelete } from '../lib/api'
 import { formatDate } from '../lib/format'
-import type { EquipamentoPessoal, UsuarioHub } from '../types/tecnologia'
+import type { EquipamentoPessoal, Loja, UsuarioHub } from '../types/tecnologia'
 
 const FORM_VAZIO = {
     patrimonio: '',
-    loja: '',
+    filial_id: '',
     tipo: '',
     marca: '',
     modelo: '',
@@ -28,6 +28,7 @@ export default function EquipamentosPessoais() {
     const { me, loading: loadingMe, error: meError } = useMe()
     const { rows, loading, erro, recarregar } = useLista<EquipamentoPessoal>('/tecnologia/equipamentos-pessoais')
     const { rows: usuarios } = useLista<UsuarioHub>('/tecnologia/usuarios')
+    const { rows: lojas } = useLista<Loja>('/tecnologia/lojas')
 
     const [busca, setBusca] = useState('')
     const [formAberto, setFormAberto] = useState(false)
@@ -39,7 +40,7 @@ export default function EquipamentosPessoais() {
     const termo = busca.trim().toLowerCase()
     const rowsFiltradas = termo
         ? rows.filter((row) =>
-              [row.patrimonio, row.loja, row.tipo, row.marca, row.modelo, row.usuario_nome]
+              [row.patrimonio, row.loja_nome, row.tipo, row.marca, row.modelo, row.usuario_nome]
                   .join(' ')
                   .toLowerCase()
                   .includes(termo)
@@ -57,7 +58,7 @@ export default function EquipamentosPessoais() {
         setEditandoId(row.id)
         setForm({
             patrimonio: String(row.patrimonio),
-            loja: row.loja,
+            filial_id: String(row.filial_id),
             tipo: row.tipo,
             marca: row.marca,
             modelo: row.modelo,
@@ -80,12 +81,22 @@ export default function EquipamentosPessoais() {
     }
 
     async function salvar() {
+        if (!form.filial_id) {
+            setErroForm('Selecione uma loja.')
+            return
+        }
+
+        if (!form.user_hub_id) {
+            setErroForm('Selecione um colaborador.')
+            return
+        }
+
         setSalvando(true)
         setErroForm(null)
 
         const payload = {
             patrimonio: Number(form.patrimonio),
-            loja: form.loja,
+            filial_id: Number(form.filial_id),
             tipo: form.tipo,
             marca: form.marca,
             modelo: form.modelo,
@@ -167,12 +178,18 @@ export default function EquipamentosPessoais() {
                             />
                         </Field>
                         <Field label='Loja'>
-                            <input
-                                type='text'
+                            <select
                                 className={inputClass}
-                                value={form.loja}
-                                onChange={(e) => setForm({ ...form, loja: e.target.value })}
-                            />
+                                value={form.filial_id}
+                                onChange={(e) => setForm({ ...form, filial_id: e.target.value })}
+                            >
+                                <option value=''>Selecione...</option>
+                                {lojas.map((loja) => (
+                                    <option key={loja.id} value={loja.id}>
+                                        {loja.name}
+                                    </option>
+                                ))}
+                            </select>
                         </Field>
                         <Field label='Tipo'>
                             <input
@@ -300,7 +317,7 @@ export default function EquipamentosPessoais() {
                 rows={rowsFiltradas}
                 columns={[
                     { key: 'patrimonio', label: 'Patrimônio', render: (row) => row.patrimonio },
-                    { key: 'loja', label: 'Loja', render: (row) => row.loja },
+                    { key: 'loja', label: 'Loja', render: (row) => row.loja_nome ?? '-' },
                     { key: 'tipo', label: 'Tipo', render: (row) => row.tipo },
                     { key: 'marca', label: 'Marca', render: (row) => row.marca },
                     { key: 'modelo', label: 'Modelo', render: (row) => row.modelo },
