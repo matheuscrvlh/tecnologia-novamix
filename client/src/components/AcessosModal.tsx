@@ -8,7 +8,6 @@ import { formatDate } from '../lib/format'
 import type { AcessoUsuario, Sistema, UsuarioHub } from '../types/tecnologia'
 
 const FORM_VAZIO = { system_id: '', user_login: '', user_password: '' }
-const SISTEMA_VAZIO = { name: '', link: '' }
 
 type AcessosModalProps = {
     usuario: UsuarioHub
@@ -17,18 +16,12 @@ type AcessosModalProps = {
 
 export default function AcessosModal({ usuario, onFechar }: AcessosModalProps) {
     const { rows: acessos, loading, erro, recarregar } = useLista<AcessoUsuario>(`/tecnologia/usuarios/${usuario.id}/acessos`)
-    const { rows: sistemas, recarregar: recarregarSistemas } = useLista<Sistema>('/tecnologia/sistemas')
+    const { rows: sistemas } = useLista<Sistema>('/tecnologia/sistemas')
 
     const [form, setForm] = useState(FORM_VAZIO)
     const [salvando, setSalvando] = useState(false)
     const [erroForm, setErroForm] = useState<string | null>(null)
     const [visiveis, setVisiveis] = useState<Record<number, boolean>>({})
-
-    const [sistemaFormAberto, setSistemaFormAberto] = useState(false)
-    const [novoSistema, setNovoSistema] = useState(SISTEMA_VAZIO)
-    const [salvandoSistema, setSalvandoSistema] = useState(false)
-    const [erroSistema, setErroSistema] = useState<string | null>(null)
-
     const [copiado, setCopiado] = useState(false)
 
     function alternarVisibilidade(systemId: number) {
@@ -68,32 +61,6 @@ export default function AcessosModal({ usuario, onFechar }: AcessosModalProps) {
         if (!window.confirm('Remover este acesso?')) return
         await apiDelete(`/tecnologia/usuarios/${usuario.id}/acessos/${systemId}`)
         await recarregar()
-    }
-
-    async function salvarSistema() {
-        if (!novoSistema.name.trim()) {
-            setErroSistema('Informe o nome do sistema.')
-            return
-        }
-
-        setSalvandoSistema(true)
-        setErroSistema(null)
-
-        try {
-            const criado = await apiPost<Sistema>('/tecnologia/sistemas', {
-                name: novoSistema.name,
-                link: novoSistema.link || null,
-                status: true,
-            })
-            await recarregarSistemas()
-            setForm((f) => ({ ...f, system_id: String(criado.id) }))
-            setSistemaFormAberto(false)
-            setNovoSistema(SISTEMA_VAZIO)
-        } catch (err) {
-            setErroSistema(err instanceof Error ? err.message : 'Erro ao salvar sistema.')
-        } finally {
-            setSalvandoSistema(false)
-        }
     }
 
     async function copiarTudo() {
@@ -210,27 +177,18 @@ export default function AcessosModal({ usuario, onFechar }: AcessosModalProps) {
 
                     <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
                         <Field label='Sistema'>
-                            <div className='flex gap-2'>
-                                <select
-                                    className={`${inputClass} flex-1`}
-                                    value={form.system_id}
-                                    onChange={(e) => setForm({ ...form, system_id: e.target.value })}
-                                >
-                                    <option value=''>Selecione...</option>
-                                    {sistemas.map((sistema) => (
-                                        <option key={sistema.id} value={sistema.id}>
-                                            {sistema.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                <button
-                                    type='button'
-                                    onClick={() => setSistemaFormAberto((v) => !v)}
-                                    className='rounded-lg border border-orange-base px-3 text-sm font-semibold text-orange-base transition-colors hover:bg-orange-base/10'
-                                >
-                                    + novo
-                                </button>
-                            </div>
+                            <select
+                                className={inputClass}
+                                value={form.system_id}
+                                onChange={(e) => setForm({ ...form, system_id: e.target.value })}
+                            >
+                                <option value=''>Selecione...</option>
+                                {sistemas.map((sistema) => (
+                                    <option key={sistema.id} value={sistema.id}>
+                                        {sistema.name}
+                                    </option>
+                                ))}
+                            </select>
                         </Field>
                         <Field label='Login'>
                             <input
@@ -249,57 +207,6 @@ export default function AcessosModal({ usuario, onFechar }: AcessosModalProps) {
                             />
                         </Field>
                     </div>
-
-                    {sistemaFormAberto && (
-                        <div className='mt-4 rounded-lg border border-orange-base/30 bg-orange-base/5 p-4'>
-                            <h4 className='mb-3 text-xs font-semibold uppercase tracking-wide text-gray-dark dark:text-dark-text-muted'>
-                                Novo sistema
-                            </h4>
-
-                            {erroSistema && (
-                                <div className='mb-3 rounded-lg bg-red-light/10 px-3 py-2 text-sm font-medium text-red-base'>
-                                    {erroSistema}
-                                </div>
-                            )}
-
-                            <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
-                                <Field label='Nome'>
-                                    <input
-                                        type='text'
-                                        className={inputClass}
-                                        value={novoSistema.name}
-                                        onChange={(e) => setNovoSistema({ ...novoSistema, name: e.target.value })}
-                                    />
-                                </Field>
-                                <Field label='Link (opcional)'>
-                                    <input
-                                        type='text'
-                                        className={inputClass}
-                                        value={novoSistema.link}
-                                        onChange={(e) => setNovoSistema({ ...novoSistema, link: e.target.value })}
-                                    />
-                                </Field>
-                            </div>
-
-                            <div className='mt-3 flex gap-3'>
-                                <button
-                                    type='button'
-                                    disabled={salvandoSistema}
-                                    onClick={salvarSistema}
-                                    className='rounded-lg bg-orange-base px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-orange-light disabled:opacity-60'
-                                >
-                                    {salvandoSistema ? 'Salvando...' : 'Salvar sistema'}
-                                </button>
-                                <button
-                                    type='button'
-                                    onClick={() => setSistemaFormAberto(false)}
-                                    className='rounded-lg px-3 py-1.5 text-sm font-semibold text-gray-text transition-colors hover:bg-gray dark:text-dark-text dark:hover:bg-dark-surface-2'
-                                >
-                                    Cancelar
-                                </button>
-                            </div>
-                        </div>
-                    )}
 
                     <div className='mt-4'>
                         <button

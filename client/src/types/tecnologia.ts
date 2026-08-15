@@ -17,12 +17,6 @@ export interface UsuarioHub {
     sector_name: string | null
 }
 
-export interface Setor {
-    id: number
-    name: string
-    status: boolean
-}
-
 export interface Sistema {
     id: number
     name: string

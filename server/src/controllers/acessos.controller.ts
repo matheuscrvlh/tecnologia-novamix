@@ -27,14 +27,25 @@ export async function getAcessosUsuario(req: FastifyRequest, res: FastifyReply) 
             [id]
         )
 
-        const acessos = rows.map((row) => ({
-            system_id: row.system_id,
-            system_name: row.system_name,
-            system_link: row.system_link,
-            user_login: row.user_login,
-            user_password: row.user_password ? decrypt(row.user_password) : null,
-            updated_at: row.updated_at,
-        }))
+        const acessos = rows.map((row) => {
+            let senha: string | null = null
+            if (row.user_password) {
+                try {
+                    senha = decrypt(row.user_password)
+                } catch {
+                    senha = null
+                }
+            }
+
+            return {
+                system_id: row.system_id,
+                system_name: row.system_name,
+                system_link: row.system_link,
+                user_login: row.user_login,
+                user_password: senha,
+                updated_at: row.updated_at,
+            }
+        })
 
         res.send(acessos)
     } finally {
