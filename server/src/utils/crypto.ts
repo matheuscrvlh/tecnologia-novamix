@@ -5,18 +5,10 @@ const IV_LENGTH = 12
 const AUTH_TAG_LENGTH = 16
 
 function getKey(): Buffer {
-    const key = Buffer.from(process.env.ENCRYPTION_KEY, 'hex')
-    if (key.length !== 32) {
-        throw new Error('ENCRYPTION_KEY deve ter 32 bytes (64 caracteres hexadecimais).')
+    if (!process.env.ENCRYPTION_KEY) {
+        throw new Error('ENCRYPTION_KEY não encontrada no .env.')
     }
-    return key
-}
-
-export function encrypt(texto: string): Buffer {
-    const iv = crypto.randomBytes(IV_LENGTH)
-    const cipher = crypto.createCipheriv(ALGORITHM, getKey(), iv)
-    const cifrado = Buffer.concat([cipher.update(texto, 'utf8'), cipher.final()])
-    return Buffer.concat([iv, cipher.getAuthTag(), cifrado])
+    return crypto.createHash('sha256').update(process.env.ENCRYPTION_KEY).digest()
 }
 
 export function decrypt(dados: Buffer): string {

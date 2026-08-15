@@ -1,13 +1,7 @@
 import type { FastifyRequest, FastifyReply } from 'fastify'
 import { checkPermission } from '../middlewares/auth.middlewares'
 import { connHub } from '../database/hub.database'
-import { encrypt, decrypt } from '../utils/crypto'
-
-interface AcessoBody {
-    system_id?: number
-    user_login?: string
-    user_password?: string | null
-}
+import { decrypt } from '../utils/crypto'
 
 export async function getAcessosUsuario(req: FastifyRequest, res: FastifyReply) {
     const permission = await checkPermission(req, res)
@@ -48,50 +42,6 @@ export async function getAcessosUsuario(req: FastifyRequest, res: FastifyReply) 
         })
 
         res.send(acessos)
-    } finally {
-        conn.release()
-    }
-}
-
-export async function salvarAcesso(req: FastifyRequest, res: FastifyReply) {
-    const permission = await checkPermission(req, res)
-    if (!permission) return
-
-    const { id } = req.params as { id: string }
-    const body = req.body as AcessoBody
-
-    if (!body.system_id || !body.user_login) {
-        res.code(400).send({ error: 'Campos obrigatórios faltando: system_id, user_login' })
-        return
-    }
-
-    const senhaCifrada = body.user_password ? encrypt(body.user_password) : null
-
-    const conn = await connHub()
-    try {
-        await conn.query(
-            `INSERT INTO public.users_systems (user_id, system_id, user_login, user_password, updated_at)
-             VALUES ($1, $2, $3, $4, now())
-             ON CONFLICT (user_id, system_id)
-             DO UPDATE SET user_login = $3, user_password = $4, updated_at = now()`,
-            [id, body.system_id, body.user_login, senhaCifrada]
-        )
-        res.code(204).send()
-    } finally {
-        conn.release()
-    }
-}
-
-export async function excluirAcesso(req: FastifyRequest, res: FastifyReply) {
-    const permission = await checkPermission(req, res)
-    if (!permission) return
-
-    const { id, systemId } = req.params as { id: string; systemId: string }
-
-    const conn = await connHub()
-    try {
-        await conn.query('DELETE FROM public.users_systems WHERE user_id = $1 AND system_id = $2', [id, systemId])
-        res.code(204).send()
     } finally {
         conn.release()
     }

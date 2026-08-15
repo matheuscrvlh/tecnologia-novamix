@@ -17,13 +17,6 @@ export interface UsuarioHub {
     sector_name: string | null
 }
 
-export interface Sistema {
-    id: number
-    name: string
-    link: string | null
-    status: boolean
-}
-
 export interface AcessoUsuario {
     system_id: number
     system_name: string

@@ -2,8 +2,7 @@ import { authenticate } from '../middlewares/auth.middlewares'
 import { getMe } from '../controllers/tecnologia.controller'
 import { getUsuarios } from '../controllers/usuarios.controller'
 import { getLojas } from '../controllers/lojas.controller'
-import { getSistemas } from '../controllers/sistemas.controller'
-import { getAcessosUsuario, salvarAcesso, excluirAcesso } from '../controllers/acessos.controller'
+import { getAcessosUsuario } from '../controllers/acessos.controller'
 import { getFornecedores, createFornecedor } from '../controllers/fornecedores.controller'
 import {
     getEquipamentos,
@@ -24,12 +23,8 @@ export function tecnologiaRoutes(fastify) {
 
     fastify.get('/tecnologia/usuarios', { preHandler: [authenticate] }, getUsuarios)
     fastify.get('/tecnologia/usuarios/:id/acessos', { preHandler: [authenticate] }, getAcessosUsuario)
-    fastify.post('/tecnologia/usuarios/:id/acessos', { preHandler: [authenticate] }, salvarAcesso)
-    fastify.delete('/tecnologia/usuarios/:id/acessos/:systemId', { preHandler: [authenticate] }, excluirAcesso)
 
     fastify.get('/tecnologia/lojas', { preHandler: [authenticate] }, getLojas)
-
-    fastify.get('/tecnologia/sistemas', { preHandler: [authenticate] }, getSistemas)
 
     fastify.get('/tecnologia/fornecedores', { preHandler: [authenticate] }, getFornecedores)
     fastify.post('/tecnologia/fornecedores', { preHandler: [authenticate] }, createFornecedor)
