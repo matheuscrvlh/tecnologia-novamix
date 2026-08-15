@@ -4,13 +4,24 @@ import BarList from '../components/BarList'
 import { useMe } from '../hooks/useMe'
 import { useLista } from '../hooks/useLista'
 import { formatCurrency } from '../lib/format'
-import type { Equipamento, EquipamentoPessoal, Fornecedor, Gasto } from '../types/tecnologia'
+import type { Equipamento, EquipamentoPessoal, Fornecedor, Gasto, UsuarioHub } from '../types/tecnologia'
 
 function agruparPorLoja(itens: { loja_nome: string | null }[]) {
     const contagem = new Map<string, number>()
     for (const item of itens) {
         const loja = item.loja_nome ?? 'Sem loja'
         contagem.set(loja, (contagem.get(loja) ?? 0) + 1)
+    }
+    return [...contagem.entries()]
+        .map(([label, value]) => ({ label, value }))
+        .sort((a, b) => b.value - a.value)
+}
+
+function agruparPorSetor(usuarios: UsuarioHub[]) {
+    const contagem = new Map<string, number>()
+    for (const usuario of usuarios) {
+        const setor = usuario.sector_name ?? 'Sem setor'
+        contagem.set(setor, (contagem.get(setor) ?? 0) + 1)
     }
     return [...contagem.entries()]
         .map(([label, value]) => ({ label, value }))
@@ -42,8 +53,10 @@ export default function Home() {
         useLista<EquipamentoPessoal>('/tecnologia/equipamentos-pessoais')
     const { rows: gastos, loading: loadingGastos } = useLista<Gasto>('/tecnologia/gastos')
     const { rows: fornecedores, loading: loadingFornecedores } = useLista<Fornecedor>('/tecnologia/fornecedores')
+    const { rows: usuarios, loading: loadingUsuarios } = useLista<UsuarioHub>('/tecnologia/usuarios')
 
-    const carregando = loadingEquipamentos || loadingPessoais || loadingGastos || loadingFornecedores
+    const carregando =
+        loadingEquipamentos || loadingPessoais || loadingGastos || loadingFornecedores || loadingUsuarios
 
     const equipamentosAtivos = equipamentos.filter((e) => e.status).length
     const precisamVerificar = equipamentos.filter((e) => e.verificar).length
@@ -55,6 +68,7 @@ export default function Home() {
 
     const gastosPorLoja = somarGastosPorLoja(gastos)
     const equipamentosPorLoja = agruparPorLoja(equipamentos)
+    const usuariosPorSetor = agruparPorSetor(usuarios)
 
     return (
         <PageShell
@@ -90,9 +104,10 @@ export default function Home() {
                         <StatTile label='Gasto no mês' value={formatCurrency(gastoMesAtual)} hint='mês atual' />
                     </div>
 
-                    <div className='grid grid-cols-1 gap-6 lg:grid-cols-2'>
+                    <div className='grid grid-cols-1 gap-6 lg:grid-cols-3'>
                         <BarList titulo='Gastos por loja' itens={gastosPorLoja} formatarValor={formatCurrency} />
                         <BarList titulo='Equipamentos por loja' itens={equipamentosPorLoja} />
+                        <BarList titulo='Usuários por setor' itens={usuariosPorSetor} />
                     </div>
                 </div>
             )}

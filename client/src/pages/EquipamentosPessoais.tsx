@@ -5,7 +5,7 @@ import Field, { inputClass } from '../components/Field'
 import { useMe } from '../hooks/useMe'
 import { useLista } from '../hooks/useLista'
 import { apiPost, apiPut, apiDelete } from '../lib/api'
-import { formatDate } from '../lib/format'
+import { formatDate, formatPhoneInput } from '../lib/format'
 import type { EquipamentoPessoal, Loja, UsuarioHub } from '../types/tecnologia'
 
 const FORM_VAZIO = {
@@ -81,13 +81,43 @@ export default function EquipamentosPessoais() {
     }
 
     async function salvar() {
+        if (!form.patrimonio.trim()) {
+            setErroForm('Informe o patrimônio.')
+            return
+        }
+
         if (!form.filial_id) {
             setErroForm('Selecione uma loja.')
             return
         }
 
+        if (!form.tipo.trim()) {
+            setErroForm('Informe o tipo.')
+            return
+        }
+
+        if (!form.marca.trim()) {
+            setErroForm('Informe a marca.')
+            return
+        }
+
+        if (!form.modelo.trim()) {
+            setErroForm('Informe o modelo.')
+            return
+        }
+
         if (!form.user_hub_id) {
             setErroForm('Selecione um colaborador.')
+            return
+        }
+
+        if (form.avarias && !form.avarias_obs.trim()) {
+            setErroForm('Descreva a avaria.')
+            return
+        }
+
+        if (form.data_recebimento && form.data_devolucao && form.data_devolucao < form.data_recebimento) {
+            setErroForm('A data de devolução não pode ser anterior à data de recebimento.')
             return
         }
 
@@ -232,9 +262,11 @@ export default function EquipamentosPessoais() {
                         <Field label='Telefone'>
                             <input
                                 type='text'
+                                inputMode='numeric'
+                                placeholder='(00) 00000-0000'
                                 className={inputClass}
                                 value={form.telefone}
-                                onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+                                onChange={(e) => setForm({ ...form, telefone: formatPhoneInput(e.target.value) })}
                             />
                         </Field>
                         <Field label='Data de recebimento'>

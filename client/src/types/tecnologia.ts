@@ -11,6 +11,32 @@ export interface UsuarioHub {
     role: string
     status: boolean
     created_at: string
+    telephone: string | null
+    last_login: string | null
+    sector_id: number | null
+    sector_name: string | null
+}
+
+export interface Setor {
+    id: number
+    name: string
+    status: boolean
+}
+
+export interface Sistema {
+    id: number
+    name: string
+    link: string | null
+    status: boolean
+}
+
+export interface AcessoUsuario {
+    system_id: number
+    system_name: string
+    system_link: string | null
+    user_login: string
+    user_password: string | null
+    updated_at: string
 }
 
 export interface Equipamento {

@@ -5,7 +5,7 @@ import Field, { inputClass } from '../components/Field'
 import { useMe } from '../hooks/useMe'
 import { useLista } from '../hooks/useLista'
 import { apiPost, apiPut, apiDelete } from '../lib/api'
-import { formatCurrency, formatDate } from '../lib/format'
+import { formatCurrency, formatDate, formatCnpjInput, onlyDigits } from '../lib/format'
 import type { Equipamento, Fornecedor, Gasto, Loja, UsuarioHub } from '../types/tecnologia'
 
 const FORM_VAZIO = {
@@ -142,13 +142,19 @@ export default function Gastos() {
             return
         }
 
+        const cnpjDigitos = onlyDigits(novoFornecedor.cnpj)
+        if (cnpjDigitos && cnpjDigitos.length !== 14) {
+            setErroFornecedor('CNPJ deve conter 14 dígitos.')
+            return
+        }
+
         setSalvandoFornecedor(true)
         setErroFornecedor(null)
 
         try {
             const criado = await apiPost<Fornecedor>('/tecnologia/fornecedores', {
                 empresa: novoFornecedor.empresa,
-                cnpj: novoFornecedor.cnpj || null,
+                cnpj: cnpjDigitos || null,
                 endereco: novoFornecedor.endereco || null,
                 cep: novoFornecedor.cep || null,
                 status: true,
@@ -352,9 +358,13 @@ export default function Gastos() {
                                 <Field label='CNPJ'>
                                     <input
                                         type='text'
+                                        inputMode='numeric'
+                                        placeholder='00.000.000/0000-00'
                                         className={inputClass}
                                         value={novoFornecedor.cnpj}
-                                        onChange={(e) => setNovoFornecedor({ ...novoFornecedor, cnpj: e.target.value })}
+                                        onChange={(e) =>
+                                            setNovoFornecedor({ ...novoFornecedor, cnpj: formatCnpjInput(e.target.value) })
+                                        }
                                     />
                                 </Field>
                                 <Field label='Endereço'>
