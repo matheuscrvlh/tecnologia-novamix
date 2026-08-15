@@ -18,6 +18,8 @@ if(!process.env.SERVER_PORT) {
     throw new Error('Erro ao encontrar JWT_SECRET no .env.')
 } else if (!process.env.DATABASE_URL) {
     throw new Error('Erro ao encontrar DATABASE_URL no .env.')
+} else if (!process.env.ENCRYPTION_KEY) {
+    throw new Error('Erro ao encontrar ENCRYPTION_KEY no .env.')
 };
 
 app.register(cookie);

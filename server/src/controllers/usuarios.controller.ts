@@ -8,9 +8,13 @@ export async function getUsuarios(req: FastifyRequest, res: FastifyReply) {
 
     const conn = await connHub()
     try {
-        const { rows } = await conn.query(
-            'SELECT id, name, login, role, status, created_at FROM public.users ORDER BY name'
-        )
+        const { rows } = await conn.query(`
+            SELECT u.id, u.name, u.login, u.role, u.status, u.created_at,
+                   u.telephone, u.last_login, u.sector_id, s.name AS sector_name
+            FROM public.users u
+            LEFT JOIN public.sectors s ON s.id = u.sector_id
+            ORDER BY u.name
+        `)
         res.send(rows)
     } finally {
         conn.release()
