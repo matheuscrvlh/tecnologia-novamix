@@ -2,6 +2,7 @@ import type { FastifyRequest, FastifyReply } from "fastify"
 import { verifyToken } from "../utils/jwt";
 
 export interface AuthUser {
+    sub: number;
     permissions: { module: string, access: string}[];
     branchs: { id: number }[];
 }

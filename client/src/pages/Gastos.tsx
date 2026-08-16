@@ -4,6 +4,7 @@ import DataTable from '../components/DataTable'
 import Field, { inputClass } from '../components/Field'
 import PillFilter from '../components/PillFilter'
 import DateRangeFilter from '../components/DateRangeFilter'
+import FiltersMenu from '../components/FiltersMenu'
 import { useMe } from '../hooks/useMe'
 import { useLista } from '../hooks/useLista'
 import { apiPost, apiPut, apiDelete } from '../lib/api'
@@ -21,7 +22,6 @@ const FORM_VAZIO = {
     pagamento: '',
     liberacao: '',
     data_gasto: '',
-    user_hub_id: '',
 }
 
 const FORNECEDOR_VAZIO = { empresa: '', cnpj: '', endereco: '', cep: '' }
@@ -51,6 +51,7 @@ export default function Gastos() {
     const [dataFim, setDataFim] = useState('')
 
     const lojasAtivas = lojasSelecionadas.length > 0 ? lojasSelecionadas : lojas.map((l) => l.id)
+    const filtrosAtivos = (lojasSelecionadas.length > 0 ? 1 : 0) + (dataInicio || dataFim ? 1 : 0)
 
     const termo = busca.trim().toLowerCase()
     const rowsFiltradas = rows.filter((row) => {
@@ -59,7 +60,7 @@ export default function Gastos() {
         if (dataInicio && data < dataInicio) return false
         if (dataFim && data > dataFim) return false
         if (!termo) return true
-        return [row.fornecedor_nome, row.loja_nome, row.tipo, row.area, row.pagamento, row.liberacao, row.usuario_nome]
+        return [row.fornecedor_nome, row.loja_nome, row.tipo, row.area, row.pagamento, row.liberacao_nome, row.usuario_nome]
             .join(' ')
             .toLowerCase()
             .includes(termo)
@@ -83,9 +84,8 @@ export default function Gastos() {
             area: row.area,
             valor: row.valor,
             pagamento: row.pagamento,
-            liberacao: row.liberacao,
+            liberacao: String(row.liberacao),
             data_gasto: row.data_gasto.slice(0, 10),
-            user_hub_id: row.user_hub_id ? String(row.user_hub_id) : '',
         })
         setErroForm(null)
         setFormAberto(true)
@@ -108,6 +108,11 @@ export default function Gastos() {
             return
         }
 
+        if (!form.liberacao) {
+            setErroForm('Selecione quem liberou o gasto.')
+            return
+        }
+
         setSalvando(true)
         setErroForm(null)
 
@@ -120,9 +125,8 @@ export default function Gastos() {
             area: form.area,
             valor: Number(form.valor),
             pagamento: form.pagamento,
-            liberacao: form.liberacao,
+            liberacao: Number(form.liberacao),
             data_gasto: form.data_gasto || null,
-            user_hub_id: form.user_hub_id ? Number(form.user_hub_id) : null,
         }
 
         try {
@@ -189,14 +193,31 @@ export default function Gastos() {
             titulo='Gastos'
             subtitulo='Gastos de TI por fornecedor e loja.'
         >
-            <div className='mb-4 flex flex-wrap items-center justify-between gap-3'>
-                <input
-                    type='text'
-                    value={busca}
-                    onChange={(e) => setBusca(e.target.value)}
-                    placeholder='Buscar por fornecedor, loja, tipo, área...'
-                    className={`${inputClass} w-full max-w-sm`}
-                />
+            <div className='mb-6 flex flex-wrap items-center justify-between gap-3'>
+                <div className='flex flex-wrap items-center gap-3'>
+                    <input
+                        type='text'
+                        value={busca}
+                        onChange={(e) => setBusca(e.target.value)}
+                        placeholder='Buscar por fornecedor, loja, tipo, área...'
+                        className={`${inputClass} w-full max-w-sm`}
+                    />
+                    <FiltersMenu ativos={filtrosAtivos}>
+                        <PillFilter
+                            label='Loja'
+                            options={lojas.map((loja) => ({ value: loja.id, label: loja.name }))}
+                            selected={lojasAtivas}
+                            onChange={setLojasSelecionadas}
+                        />
+                        <DateRangeFilter
+                            label='Período'
+                            inicio={dataInicio}
+                            fim={dataFim}
+                            onChangeInicio={setDataInicio}
+                            onChangeFim={setDataFim}
+                        />
+                    </FiltersMenu>
+                </div>
                 <button
                     type='button'
                     onClick={abrirNovo}
@@ -204,22 +225,6 @@ export default function Gastos() {
                 >
                     Novo gasto
                 </button>
-            </div>
-
-            <div className='mb-6 flex flex-col gap-3 rounded-xl border border-gray-base/30 bg-white p-4 shadow-sm dark:border-dark-border dark:bg-dark-surface'>
-                <PillFilter
-                    label='Loja'
-                    options={lojas.map((loja) => ({ value: loja.id, label: loja.name }))}
-                    selected={lojasAtivas}
-                    onChange={setLojasSelecionadas}
-                />
-                <DateRangeFilter
-                    label='Período'
-                    inicio={dataInicio}
-                    fim={dataFim}
-                    onChangeInicio={setDataInicio}
-                    onChangeFim={setDataFim}
-                />
             </div>
 
             {formAberto && (
@@ -320,20 +325,12 @@ export default function Gastos() {
                             />
                         </Field>
                         <Field label='Liberação'>
-                            <input
-                                type='text'
+                            <select
                                 className={inputClass}
                                 value={form.liberacao}
                                 onChange={(e) => setForm({ ...form, liberacao: e.target.value })}
-                            />
-                        </Field>
-                        <Field label='Registrado por (opcional)'>
-                            <select
-                                className={inputClass}
-                                value={form.user_hub_id}
-                                onChange={(e) => setForm({ ...form, user_hub_id: e.target.value })}
                             >
-                                <option value=''>Não informado</option>
+                                <option value=''>Selecione...</option>
                                 {usuarios.map((usuario) => (
                                     <option key={usuario.id} value={usuario.id}>
                                         {usuario.name}
@@ -463,7 +460,7 @@ export default function Gastos() {
                     { key: 'area', label: 'Área', render: (row) => row.area },
                     { key: 'valor', label: 'Valor', align: 'right', render: (row) => formatCurrency(row.valor) },
                     { key: 'pagamento', label: 'Pagamento', render: (row) => row.pagamento },
-                    { key: 'liberacao', label: 'Liberação', render: (row) => row.liberacao },
+                    { key: 'liberacao', label: 'Liberação', render: (row) => row.liberacao_nome ?? '-' },
                     { key: 'data_gasto', label: 'Data', render: (row) => formatDate(row.data_gasto) },
                     { key: 'patrimonio', label: 'Patrimônio', render: (row) => row.patrimonio ?? '-' },
                     { key: 'usuario', label: 'Registrado por', render: (row) => row.usuario_nome ?? '-' },

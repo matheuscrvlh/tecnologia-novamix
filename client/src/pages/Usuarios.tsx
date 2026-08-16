@@ -3,6 +3,7 @@ import PageShell from '../components/PageShell'
 import DataTable from '../components/DataTable'
 import AcessosModal from '../components/AcessosModal'
 import PillFilter from '../components/PillFilter'
+import FiltersMenu from '../components/FiltersMenu'
 import { inputClass } from '../components/Field'
 import { useMe } from '../hooks/useMe'
 import { useLista } from '../hooks/useLista'
@@ -30,6 +31,10 @@ export default function Usuarios() {
     const setoresAtivos = setoresSelecionados.length > 0 ? setoresSelecionados : setoresDisponiveis
     const perfisAtivos = perfisSelecionados.length > 0 ? perfisSelecionados : perfisDisponiveis
     const statusAtivo = statusSelecionado.length > 0 ? statusSelecionado : [true, false]
+    const filtrosAtivos =
+        (setoresSelecionados.length > 0 ? 1 : 0) +
+        (perfisSelecionados.length > 0 ? 1 : 0) +
+        (statusSelecionado.length > 0 ? 1 : 0)
 
     const termo = busca.trim().toLowerCase()
     const rowsFiltradas = rows.filter((row) => {
@@ -48,7 +53,7 @@ export default function Usuarios() {
             titulo='Usuários'
             subtitulo='Usuários cadastrados no hub.'
         >
-            <div className='mb-4'>
+            <div className='mb-6 flex flex-wrap items-center gap-3'>
                 <input
                     type='text'
                     value={busca}
@@ -56,22 +61,26 @@ export default function Usuarios() {
                     placeholder='Buscar por nome, login, setor...'
                     className={`${inputClass} w-full max-w-sm`}
                 />
-            </div>
-
-            <div className='mb-6 flex flex-col gap-3 rounded-xl border border-gray-base/30 bg-white p-4 shadow-sm dark:border-dark-border dark:bg-dark-surface'>
-                <PillFilter
-                    label='Setor'
-                    options={setoresDisponiveis.map((setor) => ({ value: setor, label: setor }))}
-                    selected={setoresAtivos}
-                    onChange={setSetoresSelecionados}
-                />
-                <PillFilter
-                    label='Perfil'
-                    options={perfisDisponiveis.map((perfil) => ({ value: perfil, label: perfil }))}
-                    selected={perfisAtivos}
-                    onChange={setPerfisSelecionados}
-                />
-                <PillFilter label='Status' options={STATUS_OPCOES} selected={statusAtivo} onChange={setStatusSelecionado} />
+                <FiltersMenu ativos={filtrosAtivos}>
+                    <PillFilter
+                        label='Setor'
+                        options={setoresDisponiveis.map((setor) => ({ value: setor, label: setor }))}
+                        selected={setoresAtivos}
+                        onChange={setSetoresSelecionados}
+                    />
+                    <PillFilter
+                        label='Perfil'
+                        options={perfisDisponiveis.map((perfil) => ({ value: perfil, label: perfil }))}
+                        selected={perfisAtivos}
+                        onChange={setPerfisSelecionados}
+                    />
+                    <PillFilter
+                        label='Status'
+                        options={STATUS_OPCOES}
+                        selected={statusAtivo}
+                        onChange={setStatusSelecionado}
+                    />
+                </FiltersMenu>
             </div>
 
             <DataTable

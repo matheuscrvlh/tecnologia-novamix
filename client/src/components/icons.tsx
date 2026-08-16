@@ -37,6 +37,22 @@ export function CloseIcon({ className }: IconProps) {
     )
 }
 
+export function FilterIcon({ className }: IconProps) {
+    return (
+        <svg
+            viewBox='0 0 24 24'
+            fill='none'
+            stroke='currentColor'
+            strokeWidth={2}
+            strokeLinecap='round'
+            strokeLinejoin='round'
+            className={className}
+        >
+            <polygon points='4 4 20 4 14 12 14 19 10 21 10 12 4 4' />
+        </svg>
+    )
+}
+
 export function LogOutIcon({ className }: IconProps) {
     return (
         <svg

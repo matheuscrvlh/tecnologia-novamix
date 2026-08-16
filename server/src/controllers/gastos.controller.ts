@@ -3,7 +3,6 @@ import { checkPermission } from '../middlewares/auth.middlewares'
 import { connHub } from '../database/hub.database'
 
 interface GastoBody {
-    user_hub_id?: number | null
     fornecedor_id?: number
     filial_id?: number
     patrimonio?: number | null
@@ -12,7 +11,7 @@ interface GastoBody {
     area?: string
     valor?: number
     pagamento?: string
-    liberacao?: string
+    liberacao?: number
     data_gasto?: string
 }
 
@@ -32,11 +31,12 @@ function validarCampos(body: GastoBody, res: FastifyReply) {
 }
 
 const SELECT_COM_RELACOES = `
-    SELECT g.*, f.empresa AS fornecedor_nome, b.name AS loja_nome, u.name AS usuario_nome
+    SELECT g.*, f.empresa AS fornecedor_nome, b.name AS loja_nome, u.name AS usuario_nome, l.name AS liberacao_nome
     FROM tecnologia.gastos g
     LEFT JOIN tecnologia.fornecedores f ON f.id = g.fornecedor_id
     LEFT JOIN public.branchs b ON b.id = g.filial_id
     LEFT JOIN public.users u ON u.id = g.user_hub_id
+    LEFT JOIN public.users l ON l.id = g.liberacao
 `
 
 export async function getGastos(req: FastifyRequest, res: FastifyReply) {
@@ -67,7 +67,7 @@ export async function createGasto(req: FastifyRequest, res: FastifyReply) {
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, CURRENT_DATE))
              RETURNING id`,
             [
-                body.user_hub_id ?? null,
+                req.user.sub,
                 body.fornecedor_id,
                 body.filial_id,
                 body.patrimonio ?? null,
@@ -100,13 +100,12 @@ export async function updateGasto(req: FastifyRequest, res: FastifyReply) {
     try {
         const { rows } = await conn.query(
             `UPDATE tecnologia.gastos
-             SET user_hub_id = $1, fornecedor_id = $2, filial_id = $3, patrimonio = $4, tipo = $5,
-                 obs = $6, area = $7, valor = $8, pagamento = $9, liberacao = $10,
-                 data_gasto = COALESCE($11, data_gasto)
-             WHERE id = $12
+             SET fornecedor_id = $1, filial_id = $2, patrimonio = $3, tipo = $4,
+                 obs = $5, area = $6, valor = $7, pagamento = $8, liberacao = $9,
+                 data_gasto = COALESCE($10, data_gasto)
+             WHERE id = $11
              RETURNING id`,
             [
-                body.user_hub_id ?? null,
                 body.fornecedor_id,
                 body.filial_id,
                 body.patrimonio ?? null,

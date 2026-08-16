@@ -3,6 +3,7 @@ import PageShell from '../components/PageShell'
 import DataTable from '../components/DataTable'
 import Field, { inputClass } from '../components/Field'
 import PillFilter from '../components/PillFilter'
+import FiltersMenu from '../components/FiltersMenu'
 import { useMe } from '../hooks/useMe'
 import { useLista } from '../hooks/useLista'
 import { apiPost, apiPut, apiDelete } from '../lib/api'
@@ -49,6 +50,10 @@ export default function Equipamentos() {
     const lojasAtivas = lojasSelecionadas.length > 0 ? lojasSelecionadas : lojas.map((l) => l.id)
     const statusAtivo = statusSelecionado.length > 0 ? statusSelecionado : [true, false]
     const verificarAtivo = verificarSelecionado.length > 0 ? verificarSelecionado : [true, false]
+    const filtrosAtivos =
+        (lojasSelecionadas.length > 0 ? 1 : 0) +
+        (statusSelecionado.length > 0 ? 1 : 0) +
+        (verificarSelecionado.length > 0 ? 1 : 0)
 
     const termo = busca.trim().toLowerCase()
     const rowsFiltradas = rows.filter((row) => {
@@ -141,14 +146,36 @@ export default function Equipamentos() {
             titulo='Equipamentos'
             subtitulo='Equipamentos de TI cadastrados por loja.'
         >
-            <div className='mb-4 flex flex-wrap items-center justify-between gap-3'>
-                <input
-                    type='text'
-                    value={busca}
-                    onChange={(e) => setBusca(e.target.value)}
-                    placeholder='Buscar por patrimônio, loja, local, marca...'
-                    className={`${inputClass} w-full max-w-sm`}
-                />
+            <div className='mb-6 flex flex-wrap items-center justify-between gap-3'>
+                <div className='flex flex-wrap items-center gap-3'>
+                    <input
+                        type='text'
+                        value={busca}
+                        onChange={(e) => setBusca(e.target.value)}
+                        placeholder='Buscar por patrimônio, loja, local, marca...'
+                        className={`${inputClass} w-full max-w-sm`}
+                    />
+                    <FiltersMenu ativos={filtrosAtivos}>
+                        <PillFilter
+                            label='Loja'
+                            options={lojas.map((loja) => ({ value: loja.id, label: loja.name }))}
+                            selected={lojasAtivas}
+                            onChange={setLojasSelecionadas}
+                        />
+                        <PillFilter
+                            label='Status'
+                            options={STATUS_OPCOES}
+                            selected={statusAtivo}
+                            onChange={setStatusSelecionado}
+                        />
+                        <PillFilter
+                            label='Verificar'
+                            options={VERIFICAR_OPCOES}
+                            selected={verificarAtivo}
+                            onChange={setVerificarSelecionado}
+                        />
+                    </FiltersMenu>
+                </div>
                 <button
                     type='button'
                     onClick={abrirNovo}
@@ -156,22 +183,6 @@ export default function Equipamentos() {
                 >
                     Novo equipamento
                 </button>
-            </div>
-
-            <div className='mb-6 flex flex-col gap-3 rounded-xl border border-gray-base/30 bg-white p-4 shadow-sm dark:border-dark-border dark:bg-dark-surface'>
-                <PillFilter
-                    label='Loja'
-                    options={lojas.map((loja) => ({ value: loja.id, label: loja.name }))}
-                    selected={lojasAtivas}
-                    onChange={setLojasSelecionadas}
-                />
-                <PillFilter label='Status' options={STATUS_OPCOES} selected={statusAtivo} onChange={setStatusSelecionado} />
-                <PillFilter
-                    label='Verificar'
-                    options={VERIFICAR_OPCOES}
-                    selected={verificarAtivo}
-                    onChange={setVerificarSelecionado}
-                />
             </div>
 
             {formAberto && (

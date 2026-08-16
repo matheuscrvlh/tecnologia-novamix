@@ -86,9 +86,10 @@ export interface Gasto {
     area: string
     valor: string
     pagamento: string
-    liberacao: string
+    liberacao: number
     data_gasto: string
     fornecedor_nome: string | null
     loja_nome: string | null
     usuario_nome: string | null
+    liberacao_nome: string | null
 }
