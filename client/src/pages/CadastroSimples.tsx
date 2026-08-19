@@ -1,11 +1,9 @@
 import { useState } from 'react'
-import PageShell from '../components/PageShell'
 import DataTable from '../components/DataTable'
 import ConfirmModal from '../components/ConfirmModal'
 import Field, { inputClass } from '../components/Field'
 import PillFilter from '../components/PillFilter'
 import FiltersMenu from '../components/FiltersMenu'
-import { useMe } from '../hooks/useMe'
 import { useLista } from '../hooks/useLista'
 import { apiPost, apiPut, apiDelete, ApiError } from '../lib/api'
 import type { CadastroSimples } from '../types/tecnologia'
@@ -25,7 +23,6 @@ type CadastroSimplesPageProps = {
 }
 
 export default function CadastroSimplesPage({ titulo, subtitulo, endpoint, labelSingular }: CadastroSimplesPageProps) {
-    const { me, loading: loadingMe, error: meError } = useMe()
     const { rows, loading, erro, recarregar } = useLista<CadastroSimples>(endpoint)
 
     const [busca, setBusca] = useState('')
@@ -113,24 +110,11 @@ export default function CadastroSimplesPage({ titulo, subtitulo, endpoint, label
     }
 
     return (
-        <PageShell loadingMe={loadingMe} meError={meError} autorizado={me !== null} titulo={titulo} subtitulo={subtitulo}>
-            <div className='mb-6 flex flex-wrap items-center justify-between gap-3'>
-                <div className='flex flex-wrap items-center gap-3'>
-                    <input
-                        type='text'
-                        value={busca}
-                        onChange={(e) => setBusca(e.target.value)}
-                        placeholder='Buscar por nome...'
-                        className={`${inputClass} w-full max-w-sm`}
-                    />
-                    <FiltersMenu ativos={filtrosAtivos}>
-                        <PillFilter
-                            label='Status'
-                            options={STATUS_OPCOES}
-                            selected={statusAtivo}
-                            onChange={setStatusSelecionado}
-                        />
-                    </FiltersMenu>
+        <div>
+            <div className='mb-6 flex flex-wrap items-center justify-between gap-4'>
+                <div>
+                    <h2 className='mb-1 text-lg font-semibold text-gray-text dark:text-dark-text'>{titulo}</h2>
+                    <p className='text-sm text-gray-dark dark:text-dark-text-muted'>{subtitulo}</p>
                 </div>
                 <button
                     type='button'
@@ -141,11 +125,24 @@ export default function CadastroSimplesPage({ titulo, subtitulo, endpoint, label
                 </button>
             </div>
 
+            <div className='mb-6 flex flex-wrap items-center gap-3'>
+                <input
+                    type='text'
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    placeholder='Buscar por nome...'
+                    className={`${inputClass} w-full max-w-sm`}
+                />
+                <FiltersMenu ativos={filtrosAtivos}>
+                    <PillFilter label='Status' options={STATUS_OPCOES} selected={statusAtivo} onChange={setStatusSelecionado} />
+                </FiltersMenu>
+            </div>
+
             {formAberto && (
                 <div className='mb-6 rounded-xl border border-gray-base/30 bg-white p-6 shadow-sm dark:border-dark-border dark:bg-dark-surface'>
-                    <h2 className='mb-4 text-sm font-semibold text-gray-text dark:text-dark-text'>
+                    <h3 className='mb-4 text-sm font-semibold text-gray-text dark:text-dark-text'>
                         {editandoId ? `Editar ${labelSingular}` : `Novo ${labelSingular}`}
-                    </h2>
+                    </h3>
 
                     {erroForm && (
                         <div className='mb-4 rounded-lg bg-red-light/10 px-4 py-3 text-sm font-medium text-red-base'>
@@ -251,6 +248,6 @@ export default function CadastroSimplesPage({ titulo, subtitulo, endpoint, label
                     onCancelar={() => setParaExcluir(null)}
                 />
             )}
-        </PageShell>
+        </div>
     )
 }

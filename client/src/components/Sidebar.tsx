@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import Logo from './Logo'
-import { ChevronDownIcon, CloseIcon, LogOutIcon, MenuIcon } from './icons'
+import { CloseIcon, LogOutIcon, MenuIcon } from './icons'
 
 const HUB_URL = 'https://hub.lojanovamix.com.br'
 
@@ -15,21 +15,11 @@ const PAGINAS = [
     { to: '/equipamentos', label: 'Equipamentos' },
     { to: '/equipamentos-pessoais', label: 'Equipamentos pessoais' },
     { to: '/gastos', label: 'Gastos' },
-]
-
-const CADASTROS = [
-    { to: '/locais', label: 'Locais' },
-    { to: '/tipos-equipamento', label: 'Tipos de equipamento' },
-    { to: '/marcas', label: 'Marcas' },
-    { to: '/modelos', label: 'Modelos' },
-    { to: '/areas', label: 'Áreas' },
+    { to: '/cadastros', label: 'Cadastros' },
 ]
 
 export default function Sidebar() {
     const [isOpen, setIsOpen] = useState(false)
-    const location = useLocation()
-    const cadastroAtivo = CADASTROS.some((c) => location.pathname === c.to)
-    const [cadastrosAbertos, setCadastrosAbertos] = useState(cadastroAtivo)
 
     useEffect(() => {
         if (!isOpen) return
@@ -42,10 +32,6 @@ export default function Sidebar() {
             document.body.style.overflow = originalBody
         }
     }, [isOpen])
-
-    useEffect(() => {
-        if (cadastroAtivo) setCadastrosAbertos(true)
-    }, [cadastroAtivo])
 
     function fechar() {
         setIsOpen(false)
@@ -96,38 +82,6 @@ export default function Sidebar() {
                             {pagina.label}
                         </NavLink>
                     ))}
-
-                    <div>
-                        <button
-                            type='button'
-                            onClick={() => setCadastrosAbertos((v) => !v)}
-                            className={`flex w-full items-center justify-between rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
-                                cadastroAtivo ? 'text-orange-base' : linkInactiveClass
-                            }`}
-                        >
-                            Cadastros
-                            <ChevronDownIcon
-                                className={`h-4 w-4 transition-transform ${cadastrosAbertos ? 'rotate-180' : ''}`}
-                            />
-                        </button>
-
-                        {cadastrosAbertos && (
-                            <div className='mt-1 flex flex-col gap-1 border-l border-gray-base/30 pl-3 dark:border-dark-border'>
-                                {CADASTROS.map((cadastro) => (
-                                    <NavLink
-                                        key={cadastro.to}
-                                        to={cadastro.to}
-                                        onClick={fechar}
-                                        className={({ isActive }) =>
-                                            `${linkBaseClass} text-left! ${isActive ? linkActiveClass : linkInactiveClass}`
-                                        }
-                                    >
-                                        {cadastro.label}
-                                    </NavLink>
-                                ))}
-                            </div>
-                        )}
-                    </div>
                 </nav>
 
                 <a
