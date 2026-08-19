@@ -110,3 +110,18 @@ export interface Gasto {
     usuario_nome: string | null
     liberacao_nome: string | null
 }
+
+export interface Contrato {
+    id: number
+    filial_id: number
+    fornecedor_id: number
+    area_id: number
+    data_contrato: string
+    obs: string | null
+    tipo_cobranca: string
+    valor: string
+    status: boolean
+    fornecedor_nome: string | null
+    loja_nome: string | null
+    area_nome: string | null
+}

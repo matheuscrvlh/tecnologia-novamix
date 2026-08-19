@@ -3,6 +3,7 @@ import Home from './pages/Home'
 import Usuarios from './pages/Usuarios'
 import Equipamentos from './pages/Equipamentos'
 import EquipamentosPessoais from './pages/EquipamentosPessoais'
+import Contratos from './pages/Contratos'
 import Gastos from './pages/Gastos'
 import CadastroSimples from './pages/CadastroSimples'
 import CadastrosLayout from './layouts/CadastrosLayout'
@@ -14,6 +15,7 @@ export default function App() {
       <Route path='/usuarios' element={<Usuarios />} />
       <Route path='/equipamentos' element={<Equipamentos />} />
       <Route path='/equipamentos-pessoais' element={<EquipamentosPessoais />} />
+      <Route path='/contratos' element={<Contratos />} />
       <Route path='/gastos' element={<Gastos />} />
 
       <Route path='/cadastros' element={<CadastrosLayout />}>

@@ -14,6 +14,7 @@ const PAGINAS = [
     { to: '/usuarios', label: 'Usuários' },
     { to: '/equipamentos', label: 'Equipamentos' },
     { to: '/equipamentos-pessoais', label: 'Equipamentos pessoais' },
+    { to: '/contratos', label: 'Contratos' },
     { to: '/gastos', label: 'Gastos' },
     { to: '/cadastros', label: 'Cadastros' },
 ]

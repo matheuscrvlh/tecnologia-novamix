@@ -12,30 +12,31 @@ import { useMe } from '../hooks/useMe'
 import { useLista } from '../hooks/useLista'
 import { apiPost, apiPut, apiDelete, ApiError } from '../lib/api'
 import { formatCurrency, formatDate } from '../lib/format'
-import type { CadastroSimples, Equipamento, Fornecedor, Gasto, Loja, UsuarioHub } from '../types/tecnologia'
+import type { CadastroSimples, Contrato, Fornecedor, Loja } from '../types/tecnologia'
 
-const TIPO_OPCOES = ['Manutenção', 'Compra']
+const TIPO_COBRANCA_OPCOES = ['Mensal', 'Anual', 'Único']
+
+const STATUS_OPCOES = [
+    { value: true, label: 'Ativo' },
+    { value: false, label: 'Inativo' },
+]
 
 const FORM_VAZIO = {
-    fornecedor_id: '',
     filial_id: '',
-    patrimonio: '',
-    tipo: '',
-    obs: '',
+    fornecedor_id: '',
     area_id: '',
+    data_contrato: '',
+    obs: '',
+    tipo_cobranca: '',
     valor: '',
-    pagamento: '',
-    liberacao: '',
-    data_gasto: '',
+    status: true,
 }
 
-export default function Gastos() {
+export default function Contratos() {
     const { me, loading: loadingMe, error: meError } = useMe()
-    const { rows, loading, erro, recarregar } = useLista<Gasto>('/tecnologia/gastos')
-    const { rows: fornecedores, recarregar: recarregarFornecedores } = useLista<Fornecedor>('/tecnologia/fornecedores')
+    const { rows, loading, erro, recarregar } = useLista<Contrato>('/tecnologia/contratos')
     const { rows: lojas } = useLista<Loja>('/tecnologia/lojas')
-    const { rows: equipamentos } = useLista<Equipamento>('/tecnologia/equipamentos')
-    const { rows: usuarios } = useLista<UsuarioHub>('/tecnologia/usuarios')
+    const { rows: fornecedores, recarregar: recarregarFornecedores } = useLista<Fornecedor>('/tecnologia/fornecedores')
     const { rows: areas, recarregar: recarregarAreas } = useLista<CadastroSimples>('/tecnologia/areas')
 
     const [busca, setBusca] = useState('')
@@ -45,33 +46,31 @@ export default function Gastos() {
     const [salvando, setSalvando] = useState(false)
     const [erroForm, setErroForm] = useState<string | null>(null)
 
-    const [paraExcluir, setParaExcluir] = useState<Gasto | null>(null)
+    const [paraExcluir, setParaExcluir] = useState<Contrato | null>(null)
     const [excluindo, setExcluindo] = useState(false)
     const [erroExclusao, setErroExclusao] = useState<string | null>(null)
 
     const [lojasSelecionadas, setLojasSelecionadas] = useState<number[]>([])
+    const [statusSelecionado, setStatusSelecionado] = useState<boolean[]>([])
     const [dataInicio, setDataInicio] = useState('')
     const [dataFim, setDataFim] = useState('')
 
     const lojasAtivas = lojasSelecionadas.length > 0 ? lojasSelecionadas : lojas.map((l) => l.id)
-    const filtrosAtivos = (lojasSelecionadas.length > 0 ? 1 : 0) + (dataInicio || dataFim ? 1 : 0)
+    const statusAtivo = statusSelecionado.length > 0 ? statusSelecionado : [true, false]
+    const filtrosAtivos =
+        (lojasSelecionadas.length > 0 ? 1 : 0) +
+        (statusSelecionado.length > 0 ? 1 : 0) +
+        (dataInicio || dataFim ? 1 : 0)
 
     const termo = busca.trim().toLowerCase()
     const rowsFiltradas = rows.filter((row) => {
         if (!lojasAtivas.includes(row.filial_id)) return false
-        const data = row.data_gasto.slice(0, 10)
+        if (!statusAtivo.includes(row.status)) return false
+        const data = row.data_contrato.slice(0, 10)
         if (dataInicio && data < dataInicio) return false
         if (dataFim && data > dataFim) return false
         if (!termo) return true
-        return [
-            row.fornecedor_nome,
-            row.loja_nome,
-            row.tipo,
-            row.area_nome,
-            row.pagamento,
-            row.liberacao_nome,
-            row.usuario_nome,
-        ]
+        return [row.fornecedor_nome, row.loja_nome, row.area_nome, row.tipo_cobranca, row.obs]
             .join(' ')
             .toLowerCase()
             .includes(termo)
@@ -84,19 +83,17 @@ export default function Gastos() {
         setFormAberto(true)
     }
 
-    function abrirEdicao(row: Gasto) {
+    function abrirEdicao(row: Contrato) {
         setEditandoId(row.id)
         setForm({
-            fornecedor_id: String(row.fornecedor_id),
             filial_id: String(row.filial_id),
-            patrimonio: row.patrimonio ? String(row.patrimonio) : '',
-            tipo: row.tipo,
-            obs: row.obs ?? '',
+            fornecedor_id: String(row.fornecedor_id),
             area_id: String(row.area_id),
+            data_contrato: row.data_contrato.slice(0, 10),
+            obs: row.obs ?? '',
+            tipo_cobranca: row.tipo_cobranca,
             valor: row.valor,
-            pagamento: row.pagamento,
-            liberacao: String(row.liberacao),
-            data_gasto: row.data_gasto.slice(0, 10),
+            status: row.status,
         })
         setErroForm(null)
         setFormAberto(true)
@@ -108,18 +105,13 @@ export default function Gastos() {
     }
 
     async function salvar() {
-        if (!form.fornecedor_id) {
-            setErroForm('Selecione um fornecedor.')
-            return
-        }
-
         if (!form.filial_id) {
             setErroForm('Selecione uma loja.')
             return
         }
 
-        if (!form.tipo) {
-            setErroForm('Selecione o tipo do gasto.')
+        if (!form.fornecedor_id) {
+            setErroForm('Selecione um fornecedor.')
             return
         }
 
@@ -128,8 +120,8 @@ export default function Gastos() {
             return
         }
 
-        if (!form.liberacao) {
-            setErroForm('Selecione quem liberou o gasto.')
+        if (!form.tipo_cobranca) {
+            setErroForm('Selecione o tipo de cobrança.')
             return
         }
 
@@ -137,28 +129,26 @@ export default function Gastos() {
         setErroForm(null)
 
         const payload = {
-            fornecedor_id: Number(form.fornecedor_id),
             filial_id: Number(form.filial_id),
-            patrimonio: form.patrimonio ? Number(form.patrimonio) : null,
-            tipo: form.tipo,
-            obs: form.obs || null,
+            fornecedor_id: Number(form.fornecedor_id),
             area_id: Number(form.area_id),
+            data_contrato: form.data_contrato || null,
+            obs: form.obs || null,
+            tipo_cobranca: form.tipo_cobranca,
             valor: Number(form.valor),
-            pagamento: form.pagamento,
-            liberacao: Number(form.liberacao),
-            data_gasto: form.data_gasto || null,
+            status: form.status,
         }
 
         try {
             if (editandoId) {
-                await apiPut(`/tecnologia/gastos/${editandoId}`, payload)
+                await apiPut(`/tecnologia/contratos/${editandoId}`, payload)
             } else {
-                await apiPost('/tecnologia/gastos', payload)
+                await apiPost('/tecnologia/contratos', payload)
             }
             fecharForm()
             await recarregar()
         } catch (err) {
-            setErroForm(err instanceof Error ? err.message : 'Erro ao salvar gasto.')
+            setErroForm(err instanceof Error ? err.message : 'Erro ao salvar contrato.')
         } finally {
             setSalvando(false)
         }
@@ -171,11 +161,11 @@ export default function Gastos() {
         setErroExclusao(null)
 
         try {
-            await apiDelete(`/tecnologia/gastos/${paraExcluir.id}`)
+            await apiDelete(`/tecnologia/contratos/${paraExcluir.id}`)
             setParaExcluir(null)
             await recarregar()
         } catch (err) {
-            setErroExclusao(err instanceof ApiError ? err.message : 'Erro ao excluir gasto.')
+            setErroExclusao(err instanceof ApiError ? err.message : 'Erro ao excluir contrato.')
         } finally {
             setExcluindo(false)
         }
@@ -186,8 +176,8 @@ export default function Gastos() {
             loadingMe={loadingMe}
             meError={meError}
             autorizado={me !== null}
-            titulo='Gastos'
-            subtitulo='Gastos de TI por fornecedor e loja.'
+            titulo='Contratos'
+            subtitulo='Contratos de TI por fornecedor e loja.'
         >
             <div className='mb-6 flex flex-wrap items-center justify-between gap-3'>
                 <div className='flex flex-wrap items-center gap-3'>
@@ -195,7 +185,7 @@ export default function Gastos() {
                         type='text'
                         value={busca}
                         onChange={(e) => setBusca(e.target.value)}
-                        placeholder='Buscar por fornecedor, loja, tipo, área...'
+                        placeholder='Buscar por fornecedor, loja, área...'
                         className={`${inputClass} w-full max-w-sm`}
                     />
                     <FiltersMenu ativos={filtrosAtivos}>
@@ -204,6 +194,12 @@ export default function Gastos() {
                             options={lojas.map((loja) => ({ value: loja.id, label: loja.name }))}
                             selected={lojasAtivas}
                             onChange={setLojasSelecionadas}
+                        />
+                        <PillFilter
+                            label='Status'
+                            options={STATUS_OPCOES}
+                            selected={statusAtivo}
+                            onChange={setStatusSelecionado}
                         />
                         <DateRangeFilter
                             label='Período'
@@ -219,14 +215,14 @@ export default function Gastos() {
                     onClick={abrirNovo}
                     className='rounded-lg bg-orange-base px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-light'
                 >
-                    Novo gasto
+                    Novo contrato
                 </button>
             </div>
 
             {formAberto && (
                 <div className='mb-6 rounded-xl border border-gray-base/30 bg-white p-6 shadow-sm dark:border-dark-border dark:bg-dark-surface'>
                     <h2 className='mb-4 text-sm font-semibold text-gray-text dark:text-dark-text'>
-                        {editandoId ? 'Editar gasto' : 'Novo gasto'}
+                        {editandoId ? 'Editar contrato' : 'Novo contrato'}
                     </h2>
 
                     {erroForm && (
@@ -256,33 +252,13 @@ export default function Gastos() {
                                 ))}
                             </select>
                         </Field>
-                        <Field label='Patrimônio (opcional)'>
-                            <select
+                        <Field label='Data'>
+                            <input
+                                type='date'
                                 className={inputClass}
-                                value={form.patrimonio}
-                                onChange={(e) => setForm({ ...form, patrimonio: e.target.value })}
-                            >
-                                <option value=''>Nenhum</option>
-                                {equipamentos.map((eq) => (
-                                    <option key={eq.id} value={eq.patrimonio}>
-                                        {eq.patrimonio} - {eq.equipamento_nome} ({eq.loja_nome ?? '-'})
-                                    </option>
-                                ))}
-                            </select>
-                        </Field>
-                        <Field label='Tipo'>
-                            <select
-                                className={inputClass}
-                                value={form.tipo}
-                                onChange={(e) => setForm({ ...form, tipo: e.target.value })}
-                            >
-                                <option value=''>Selecione...</option>
-                                {TIPO_OPCOES.map((opcao) => (
-                                    <option key={opcao} value={opcao}>
-                                        {opcao}
-                                    </option>
-                                ))}
-                            </select>
+                                value={form.data_contrato}
+                                onChange={(e) => setForm({ ...form, data_contrato: e.target.value })}
+                            />
                         </Field>
                         <SelectComNovo
                             label='Área'
@@ -292,6 +268,20 @@ export default function Gastos() {
                             value={form.area_id}
                             onChange={(id) => setForm({ ...form, area_id: id })}
                         />
+                        <Field label='Tipo de cobrança'>
+                            <select
+                                className={inputClass}
+                                value={form.tipo_cobranca}
+                                onChange={(e) => setForm({ ...form, tipo_cobranca: e.target.value })}
+                            >
+                                <option value=''>Selecione...</option>
+                                {TIPO_COBRANCA_OPCOES.map((opcao) => (
+                                    <option key={opcao} value={opcao}>
+                                        {opcao}
+                                    </option>
+                                ))}
+                            </select>
+                        </Field>
                         <Field label='Valor'>
                             <input
                                 type='number'
@@ -301,36 +291,14 @@ export default function Gastos() {
                                 onChange={(e) => setForm({ ...form, valor: e.target.value })}
                             />
                         </Field>
-                        <Field label='Pagamento'>
+                        <label className='flex items-center gap-2 text-sm text-gray-text dark:text-dark-text'>
                             <input
-                                type='text'
-                                className={inputClass}
-                                value={form.pagamento}
-                                onChange={(e) => setForm({ ...form, pagamento: e.target.value })}
+                                type='checkbox'
+                                checked={form.status}
+                                onChange={(e) => setForm({ ...form, status: e.target.checked })}
                             />
-                        </Field>
-                        <Field label='Liberação'>
-                            <select
-                                className={inputClass}
-                                value={form.liberacao}
-                                onChange={(e) => setForm({ ...form, liberacao: e.target.value })}
-                            >
-                                <option value=''>Selecione...</option>
-                                {usuarios.map((usuario) => (
-                                    <option key={usuario.id} value={usuario.id}>
-                                        {usuario.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </Field>
-                        <Field label='Data do gasto'>
-                            <input
-                                type='date'
-                                className={inputClass}
-                                value={form.data_gasto}
-                                onChange={(e) => setForm({ ...form, data_gasto: e.target.value })}
-                            />
-                        </Field>
+                            Ativo
+                        </label>
                         <div className='sm:col-span-2 lg:col-span-3'>
                             <Field label='Observações'>
                                 <input
@@ -374,16 +342,22 @@ export default function Gastos() {
                 erro={erro}
                 rows={rowsFiltradas}
                 columns={[
-                    { key: 'fornecedor', label: 'Fornecedor', render: (row) => row.fornecedor_nome ?? '-' },
+                    { key: 'fornecedor', label: 'Empresa', render: (row) => row.fornecedor_nome ?? '-' },
                     { key: 'loja', label: 'Loja', render: (row) => row.loja_nome ?? '-' },
-                    { key: 'tipo', label: 'Tipo', render: (row) => row.tipo },
+                    { key: 'data_contrato', label: 'Data', render: (row) => formatDate(row.data_contrato) },
                     { key: 'area', label: 'Área', render: (row) => row.area_nome ?? '-' },
+                    { key: 'tipo_cobranca', label: 'Tipo de cobrança', render: (row) => row.tipo_cobranca },
                     { key: 'valor', label: 'Valor', align: 'right', render: (row) => formatCurrency(row.valor) },
-                    { key: 'pagamento', label: 'Pagamento', render: (row) => row.pagamento },
-                    { key: 'liberacao', label: 'Liberação', render: (row) => row.liberacao_nome ?? '-' },
-                    { key: 'data_gasto', label: 'Data', render: (row) => formatDate(row.data_gasto) },
-                    { key: 'patrimonio', label: 'Patrimônio', render: (row) => row.patrimonio ?? '-' },
-                    { key: 'usuario', label: 'Registrado por', render: (row) => row.usuario_nome ?? '-' },
+                    { key: 'obs', label: 'Observação', render: (row) => row.obs ?? '-' },
+                    {
+                        key: 'status',
+                        label: 'Status',
+                        render: (row) => (
+                            <span className={row.status ? 'text-green-base' : 'text-red-base'}>
+                                {row.status ? 'Ativo' : 'Inativo'}
+                            </span>
+                        ),
+                    },
                     {
                         key: 'acoes',
                         label: 'Ações',
@@ -415,8 +389,8 @@ export default function Gastos() {
 
             {paraExcluir && (
                 <ConfirmModal
-                    titulo='Excluir gasto'
-                    mensagem={`Excluir o gasto com ${paraExcluir.fornecedor_nome ?? 'fornecedor'} de ${formatCurrency(paraExcluir.valor)}? Essa ação não pode ser desfeita.`}
+                    titulo='Excluir contrato'
+                    mensagem={`Excluir o contrato com ${paraExcluir.fornecedor_nome ?? 'fornecedor'} de ${formatCurrency(paraExcluir.valor)}? Essa ação não pode ser desfeita.`}
                     confirmando={excluindo}
                     onConfirmar={confirmarExclusao}
                     onCancelar={() => setParaExcluir(null)}

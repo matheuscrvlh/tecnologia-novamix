@@ -18,6 +18,7 @@ import {
     deleteEquipamentoPessoal,
 } from '../controllers/equipamentosPessoais.controller'
 import { getGastos, createGasto, updateGasto, deleteGasto } from '../controllers/gastos.controller'
+import { getContratos, createContrato, updateContrato, deleteContrato } from '../controllers/contratos.controller'
 
 const locais = criarCrudCadastro('locais', 'Local')
 const tiposEquipamento = criarCrudCadastro('tipos_equipamento', 'Tipo de equipamento')
@@ -70,6 +71,11 @@ export function tecnologiaRoutes(fastify) {
     fastify.post('/tecnologia/equipamentos-pessoais', { preHandler: [authenticate] }, createEquipamentoPessoal)
     fastify.put('/tecnologia/equipamentos-pessoais/:id', { preHandler: [authenticate] }, updateEquipamentoPessoal)
     fastify.delete('/tecnologia/equipamentos-pessoais/:id', { preHandler: [authenticate] }, deleteEquipamentoPessoal)
+
+    fastify.get('/tecnologia/contratos', { preHandler: [authenticate] }, getContratos)
+    fastify.post('/tecnologia/contratos', { preHandler: [authenticate] }, createContrato)
+    fastify.put('/tecnologia/contratos/:id', { preHandler: [authenticate] }, updateContrato)
+    fastify.delete('/tecnologia/contratos/:id', { preHandler: [authenticate] }, deleteContrato)
 
     fastify.get('/tecnologia/gastos', { preHandler: [authenticate] }, getGastos)
     fastify.post('/tecnologia/gastos', { preHandler: [authenticate] }, createGasto)
