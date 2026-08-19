@@ -6,6 +6,7 @@ import EquipamentosPessoais from './pages/EquipamentosPessoais'
 import Contratos from './pages/Contratos'
 import Gastos from './pages/Gastos'
 import CadastroSimples from './pages/CadastroSimples'
+import Fornecedores from './pages/Fornecedores'
 import CadastrosLayout from './layouts/CadastrosLayout'
 
 export default function App() {
@@ -75,6 +76,7 @@ export default function App() {
             />
           }
         />
+        <Route path='fornecedores' element={<Fornecedores />} />
       </Route>
     </Routes>
   )

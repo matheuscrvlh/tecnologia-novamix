@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Field, { inputClass } from './Field'
 import { apiPost } from '../lib/api'
-import { formatCnpjInput, onlyDigits } from '../lib/format'
+import { formatCepInput, formatCnpjInput, onlyDigits } from '../lib/format'
 import type { Fornecedor } from '../types/tecnologia'
 
 const FORNECEDOR_VAZIO = { empresa: '', cnpj: '', endereco: '', cep: '' }
@@ -31,6 +31,12 @@ export default function FornecedorSelect({ fornecedores, recarregar, value, onCh
             return
         }
 
+        const cepDigitos = onlyDigits(novoFornecedor.cep)
+        if (cepDigitos && cepDigitos.length !== 8) {
+            setErro('CEP deve conter 8 dígitos.')
+            return
+        }
+
         setSalvando(true)
         setErro(null)
 
@@ -39,7 +45,7 @@ export default function FornecedorSelect({ fornecedores, recarregar, value, onCh
                 empresa: novoFornecedor.empresa,
                 cnpj: cnpjDigitos || null,
                 endereco: novoFornecedor.endereco || null,
-                cep: novoFornecedor.cep || null,
+                cep: cepDigitos || null,
                 status: true,
             })
             await recarregar()
@@ -121,9 +127,11 @@ export default function FornecedorSelect({ fornecedores, recarregar, value, onCh
                         <Field label='CEP'>
                             <input
                                 type='text'
+                                inputMode='numeric'
+                                placeholder='00000-000'
                                 className={inputClass}
                                 value={novoFornecedor.cep}
-                                onChange={(e) => setNovoFornecedor({ ...novoFornecedor, cep: e.target.value })}
+                                onChange={(e) => setNovoFornecedor({ ...novoFornecedor, cep: formatCepInput(e.target.value) })}
                             />
                         </Field>
                     </div>

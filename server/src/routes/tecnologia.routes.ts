@@ -3,7 +3,12 @@ import { getMe } from '../controllers/tecnologia.controller'
 import { getUsuarios } from '../controllers/usuarios.controller'
 import { getLojas } from '../controllers/lojas.controller'
 import { getAcessosUsuario } from '../controllers/acessos.controller'
-import { getFornecedores, createFornecedor } from '../controllers/fornecedores.controller'
+import {
+    getFornecedores,
+    createFornecedor,
+    updateFornecedor,
+    deleteFornecedor,
+} from '../controllers/fornecedores.controller'
 import { criarCrudCadastro } from '../controllers/cadastros.controller'
 import {
     getEquipamentos,
@@ -36,6 +41,8 @@ export function tecnologiaRoutes(fastify) {
 
     fastify.get('/tecnologia/fornecedores', { preHandler: [authenticate] }, getFornecedores)
     fastify.post('/tecnologia/fornecedores', { preHandler: [authenticate] }, createFornecedor)
+    fastify.put('/tecnologia/fornecedores/:id', { preHandler: [authenticate] }, updateFornecedor)
+    fastify.delete('/tecnologia/fornecedores/:id', { preHandler: [authenticate] }, deleteFornecedor)
 
     fastify.get('/tecnologia/locais', { preHandler: [authenticate] }, locais.listar)
     fastify.post('/tecnologia/locais', { preHandler: [authenticate] }, locais.criar)

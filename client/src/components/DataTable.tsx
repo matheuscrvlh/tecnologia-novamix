@@ -5,6 +5,7 @@ type Column<T> = {
     key: string
     label: string
     align?: 'left' | 'right'
+    wrap?: boolean
     render: (row: T) => ReactNode
 }
 
@@ -61,9 +62,9 @@ export default function DataTable<T>({ titulo, columns, rows, loading, erro, rod
                                     {columns.map((col) => (
                                         <td
                                             key={col.key}
-                                            className={`whitespace-nowrap px-3 py-2 text-gray-text dark:text-dark-text ${
-                                                col.align === 'right' ? 'text-right tabular-nums' : 'text-left'
-                                            }`}
+                                            className={`px-3 py-2 text-gray-text dark:text-dark-text ${
+                                                col.wrap ? 'max-w-xs whitespace-normal wrap-break-word' : 'whitespace-nowrap'
+                                            } ${col.align === 'right' ? 'text-right tabular-nums' : 'text-left'}`}
                                         >
                                             {col.render(row)}
                                         </td>

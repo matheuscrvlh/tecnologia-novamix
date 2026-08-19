@@ -8,6 +8,7 @@ const ABAS = [
     { to: 'marcas', label: 'Marcas' },
     { to: 'modelos', label: 'Modelos' },
     { to: 'areas', label: 'Áreas' },
+    { to: 'fornecedores', label: 'Fornecedores' },
 ]
 
 export default function CadastrosLayout() {

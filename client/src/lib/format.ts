@@ -20,6 +20,12 @@ export function formatCnpjInput(value: string) {
         .replace(/(\d{4})(\d{1,2})$/, '$1-$2')
 }
 
+export function formatCepInput(value: string) {
+    return onlyDigits(value)
+        .slice(0, 8)
+        .replace(/(\d{5})(\d)/, '$1-$2')
+}
+
 export function formatPhoneInput(value: string) {
     const digits = onlyDigits(value).slice(0, 11)
 

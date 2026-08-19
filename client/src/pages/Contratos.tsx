@@ -2,6 +2,7 @@ import { useState } from 'react'
 import PageShell from '../components/PageShell'
 import DataTable from '../components/DataTable'
 import ConfirmModal from '../components/ConfirmModal'
+import RowActions from '../components/RowActions'
 import Field, { inputClass } from '../components/Field'
 import SelectComNovo from '../components/SelectComNovo'
 import FornecedorSelect from '../components/FornecedorSelect'
@@ -348,7 +349,7 @@ export default function Contratos() {
                     { key: 'area', label: 'Área', render: (row) => row.area_nome ?? '-' },
                     { key: 'tipo_cobranca', label: 'Tipo de cobrança', render: (row) => row.tipo_cobranca },
                     { key: 'valor', label: 'Valor', align: 'right', render: (row) => formatCurrency(row.valor) },
-                    { key: 'obs', label: 'Observação', render: (row) => row.obs ?? '-' },
+                    { key: 'obs', label: 'Observação', wrap: true, render: (row) => row.obs ?? '-' },
                     {
                         key: 'status',
                         label: 'Status',
@@ -363,25 +364,13 @@ export default function Contratos() {
                         label: 'Ações',
                         align: 'right',
                         render: (row) => (
-                            <div className='flex justify-end gap-3'>
-                                <button
-                                    type='button'
-                                    onClick={() => abrirEdicao(row)}
-                                    className='font-semibold text-orange-base hover:text-orange-light'
-                                >
-                                    Editar
-                                </button>
-                                <button
-                                    type='button'
-                                    onClick={() => {
-                                        setErroExclusao(null)
-                                        setParaExcluir(row)
-                                    }}
-                                    className='font-semibold text-red-base hover:text-red-light'
-                                >
-                                    Excluir
-                                </button>
-                            </div>
+                            <RowActions
+                                onEditar={() => abrirEdicao(row)}
+                                onExcluir={() => {
+                                    setErroExclusao(null)
+                                    setParaExcluir(row)
+                                }}
+                            />
                         ),
                     },
                 ]}

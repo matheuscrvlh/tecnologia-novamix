@@ -2,6 +2,7 @@ import { useState } from 'react'
 import PageShell from '../components/PageShell'
 import DataTable from '../components/DataTable'
 import ConfirmModal from '../components/ConfirmModal'
+import RowActions from '../components/RowActions'
 import Field, { inputClass } from '../components/Field'
 import SelectComNovo from '../components/SelectComNovo'
 import PillFilter from '../components/PillFilter'
@@ -374,25 +375,13 @@ export default function Equipamentos() {
                         label: 'Ações',
                         align: 'right',
                         render: (row) => (
-                            <div className='flex justify-end gap-3'>
-                                <button
-                                    type='button'
-                                    onClick={() => abrirEdicao(row)}
-                                    className='font-semibold text-orange-base hover:text-orange-light'
-                                >
-                                    Editar
-                                </button>
-                                <button
-                                    type='button'
-                                    onClick={() => {
-                                        setErroExclusao(null)
-                                        setParaExcluir(row)
-                                    }}
-                                    className='font-semibold text-red-base hover:text-red-light'
-                                >
-                                    Excluir
-                                </button>
-                            </div>
+                            <RowActions
+                                onEditar={() => abrirEdicao(row)}
+                                onExcluir={() => {
+                                    setErroExclusao(null)
+                                    setParaExcluir(row)
+                                }}
+                            />
                         ),
                     },
                 ]}
