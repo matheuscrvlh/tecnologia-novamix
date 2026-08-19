@@ -26,15 +26,31 @@ export interface AcessoUsuario {
     updated_at: string
 }
 
+export interface CadastroSimples {
+    id: number
+    nome: string
+    status: boolean
+}
+
+export type Local = CadastroSimples
+export type TipoEquipamento = CadastroSimples
+export type Marca = CadastroSimples
+export type Modelo = CadastroSimples
+export type Area = CadastroSimples
+
 export interface Equipamento {
     id: number
     patrimonio: number
     filial_id: number
     loja_nome: string | null
-    local: string
-    equipamento: string
-    marca: string
-    modelo: string
+    local_id: number
+    local_nome: string | null
+    equipamento_id: number
+    equipamento_nome: string | null
+    marca_id: number
+    marca_nome: string | null
+    modelo_id: number
+    modelo_nome: string | null
     ip: string | null
     status: boolean
     verificar: boolean
@@ -83,7 +99,8 @@ export interface Gasto {
     patrimonio: number | null
     tipo: string
     obs: string | null
-    area: string
+    area_id: number
+    area_nome: string | null
     valor: string
     pagamento: string
     liberacao: number

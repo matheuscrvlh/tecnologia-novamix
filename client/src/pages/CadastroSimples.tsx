@@ -1,0 +1,256 @@
+import { useState } from 'react'
+import PageShell from '../components/PageShell'
+import DataTable from '../components/DataTable'
+import ConfirmModal from '../components/ConfirmModal'
+import Field, { inputClass } from '../components/Field'
+import PillFilter from '../components/PillFilter'
+import FiltersMenu from '../components/FiltersMenu'
+import { useMe } from '../hooks/useMe'
+import { useLista } from '../hooks/useLista'
+import { apiPost, apiPut, apiDelete, ApiError } from '../lib/api'
+import type { CadastroSimples } from '../types/tecnologia'
+
+const STATUS_OPCOES = [
+    { value: true, label: 'Ativo' },
+    { value: false, label: 'Inativo' },
+]
+
+const FORM_VAZIO = { nome: '', status: true }
+
+type CadastroSimplesPageProps = {
+    titulo: string
+    subtitulo: string
+    endpoint: string
+    labelSingular: string
+}
+
+export default function CadastroSimplesPage({ titulo, subtitulo, endpoint, labelSingular }: CadastroSimplesPageProps) {
+    const { me, loading: loadingMe, error: meError } = useMe()
+    const { rows, loading, erro, recarregar } = useLista<CadastroSimples>(endpoint)
+
+    const [busca, setBusca] = useState('')
+    const [formAberto, setFormAberto] = useState(false)
+    const [editandoId, setEditandoId] = useState<number | null>(null)
+    const [form, setForm] = useState(FORM_VAZIO)
+    const [salvando, setSalvando] = useState(false)
+    const [erroForm, setErroForm] = useState<string | null>(null)
+
+    const [statusSelecionado, setStatusSelecionado] = useState<boolean[]>([])
+    const [paraExcluir, setParaExcluir] = useState<CadastroSimples | null>(null)
+    const [excluindo, setExcluindo] = useState(false)
+    const [erroExclusao, setErroExclusao] = useState<string | null>(null)
+
+    const statusAtivo = statusSelecionado.length > 0 ? statusSelecionado : [true, false]
+    const filtrosAtivos = statusSelecionado.length > 0 ? 1 : 0
+
+    const termo = busca.trim().toLowerCase()
+    const rowsFiltradas = rows.filter((row) => {
+        if (!statusAtivo.includes(row.status)) return false
+        if (!termo) return true
+        return row.nome.toLowerCase().includes(termo)
+    })
+
+    function abrirNovo() {
+        setEditandoId(null)
+        setForm(FORM_VAZIO)
+        setErroForm(null)
+        setFormAberto(true)
+    }
+
+    function abrirEdicao(row: CadastroSimples) {
+        setEditandoId(row.id)
+        setForm({ nome: row.nome, status: row.status })
+        setErroForm(null)
+        setFormAberto(true)
+    }
+
+    function fecharForm() {
+        setFormAberto(false)
+        setEditandoId(null)
+    }
+
+    async function salvar() {
+        if (!form.nome.trim()) {
+            setErroForm('Informe o nome.')
+            return
+        }
+
+        setSalvando(true)
+        setErroForm(null)
+
+        const payload = { nome: form.nome.trim(), status: form.status }
+
+        try {
+            if (editandoId) {
+                await apiPut(`${endpoint}/${editandoId}`, payload)
+            } else {
+                await apiPost(endpoint, payload)
+            }
+            fecharForm()
+            await recarregar()
+        } catch (err) {
+            setErroForm(err instanceof Error ? err.message : `Erro ao salvar ${labelSingular}.`)
+        } finally {
+            setSalvando(false)
+        }
+    }
+
+    async function confirmarExclusao() {
+        if (!paraExcluir) return
+
+        setExcluindo(true)
+        setErroExclusao(null)
+
+        try {
+            await apiDelete(`${endpoint}/${paraExcluir.id}`)
+            setParaExcluir(null)
+            await recarregar()
+        } catch (err) {
+            setErroExclusao(err instanceof ApiError ? err.message : `Erro ao excluir ${labelSingular}.`)
+        } finally {
+            setExcluindo(false)
+        }
+    }
+
+    return (
+        <PageShell loadingMe={loadingMe} meError={meError} autorizado={me !== null} titulo={titulo} subtitulo={subtitulo}>
+            <div className='mb-6 flex flex-wrap items-center justify-between gap-3'>
+                <div className='flex flex-wrap items-center gap-3'>
+                    <input
+                        type='text'
+                        value={busca}
+                        onChange={(e) => setBusca(e.target.value)}
+                        placeholder='Buscar por nome...'
+                        className={`${inputClass} w-full max-w-sm`}
+                    />
+                    <FiltersMenu ativos={filtrosAtivos}>
+                        <PillFilter
+                            label='Status'
+                            options={STATUS_OPCOES}
+                            selected={statusAtivo}
+                            onChange={setStatusSelecionado}
+                        />
+                    </FiltersMenu>
+                </div>
+                <button
+                    type='button'
+                    onClick={abrirNovo}
+                    className='rounded-lg bg-orange-base px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-light'
+                >
+                    Novo {labelSingular}
+                </button>
+            </div>
+
+            {formAberto && (
+                <div className='mb-6 rounded-xl border border-gray-base/30 bg-white p-6 shadow-sm dark:border-dark-border dark:bg-dark-surface'>
+                    <h2 className='mb-4 text-sm font-semibold text-gray-text dark:text-dark-text'>
+                        {editandoId ? `Editar ${labelSingular}` : `Novo ${labelSingular}`}
+                    </h2>
+
+                    {erroForm && (
+                        <div className='mb-4 rounded-lg bg-red-light/10 px-4 py-3 text-sm font-medium text-red-base'>
+                            {erroForm}
+                        </div>
+                    )}
+
+                    <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+                        <Field label='Nome'>
+                            <input
+                                type='text'
+                                className={inputClass}
+                                value={form.nome}
+                                onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                            />
+                        </Field>
+                        <label className='flex items-center gap-2 text-sm text-gray-text dark:text-dark-text'>
+                            <input
+                                type='checkbox'
+                                checked={form.status}
+                                onChange={(e) => setForm({ ...form, status: e.target.checked })}
+                            />
+                            Ativo
+                        </label>
+                    </div>
+
+                    <div className='mt-6 flex items-center gap-3'>
+                        <button
+                            type='button'
+                            disabled={salvando}
+                            onClick={salvar}
+                            className='rounded-lg bg-orange-base px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-light disabled:opacity-60'
+                        >
+                            {salvando ? 'Salvando...' : 'Salvar'}
+                        </button>
+                        <button
+                            type='button'
+                            onClick={fecharForm}
+                            className='rounded-lg px-4 py-2 text-sm font-semibold text-gray-text transition-colors hover:bg-gray dark:text-dark-text dark:hover:bg-dark-surface-2'
+                        >
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {erroExclusao && (
+                <div className='mb-4 rounded-lg bg-red-light/10 px-4 py-3 text-sm font-medium text-red-base'>
+                    {erroExclusao}
+                </div>
+            )}
+
+            <DataTable
+                loading={loading}
+                erro={erro}
+                rows={rowsFiltradas}
+                columns={[
+                    { key: 'nome', label: 'Nome', render: (row) => row.nome },
+                    {
+                        key: 'status',
+                        label: 'Status',
+                        render: (row) => (
+                            <span className={row.status ? 'text-green-base' : 'text-red-base'}>
+                                {row.status ? 'Ativo' : 'Inativo'}
+                            </span>
+                        ),
+                    },
+                    {
+                        key: 'acoes',
+                        label: 'Ações',
+                        align: 'right',
+                        render: (row) => (
+                            <div className='flex justify-end gap-3'>
+                                <button
+                                    type='button'
+                                    onClick={() => abrirEdicao(row)}
+                                    className='font-semibold text-orange-base hover:text-orange-light'
+                                >
+                                    Editar
+                                </button>
+                                <button
+                                    type='button'
+                                    onClick={() => {
+                                        setErroExclusao(null)
+                                        setParaExcluir(row)
+                                    }}
+                                    className='font-semibold text-red-base hover:text-red-light'
+                                >
+                                    Excluir
+                                </button>
+                            </div>
+                        ),
+                    },
+                ]}
+            />
+
+            {paraExcluir && (
+                <ConfirmModal
+                    titulo={`Excluir ${labelSingular}`}
+                    mensagem={`Tem certeza que deseja excluir "${paraExcluir.nome}"? Essa ação não pode ser desfeita.`}
+                    confirmando={excluindo}
+                    onConfirmar={confirmarExclusao}
+                    onCancelar={() => setParaExcluir(null)}
+                />
+            )}
+        </PageShell>
+    )
+}

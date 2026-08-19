@@ -4,6 +4,7 @@ import { getUsuarios } from '../controllers/usuarios.controller'
 import { getLojas } from '../controllers/lojas.controller'
 import { getAcessosUsuario } from '../controllers/acessos.controller'
 import { getFornecedores, createFornecedor } from '../controllers/fornecedores.controller'
+import { criarCrudCadastro } from '../controllers/cadastros.controller'
 import {
     getEquipamentos,
     createEquipamento,
@@ -18,6 +19,12 @@ import {
 } from '../controllers/equipamentosPessoais.controller'
 import { getGastos, createGasto, updateGasto, deleteGasto } from '../controllers/gastos.controller'
 
+const locais = criarCrudCadastro('locais', 'Local')
+const tiposEquipamento = criarCrudCadastro('tipos_equipamento', 'Tipo de equipamento')
+const marcas = criarCrudCadastro('marcas', 'Marca')
+const modelos = criarCrudCadastro('modelos', 'Modelo')
+const areas = criarCrudCadastro('areas', 'Área')
+
 export function tecnologiaRoutes(fastify) {
     fastify.get('/tecnologia/me', { preHandler: [authenticate] }, getMe)
 
@@ -28,6 +35,31 @@ export function tecnologiaRoutes(fastify) {
 
     fastify.get('/tecnologia/fornecedores', { preHandler: [authenticate] }, getFornecedores)
     fastify.post('/tecnologia/fornecedores', { preHandler: [authenticate] }, createFornecedor)
+
+    fastify.get('/tecnologia/locais', { preHandler: [authenticate] }, locais.listar)
+    fastify.post('/tecnologia/locais', { preHandler: [authenticate] }, locais.criar)
+    fastify.put('/tecnologia/locais/:id', { preHandler: [authenticate] }, locais.atualizar)
+    fastify.delete('/tecnologia/locais/:id', { preHandler: [authenticate] }, locais.excluir)
+
+    fastify.get('/tecnologia/tipos-equipamento', { preHandler: [authenticate] }, tiposEquipamento.listar)
+    fastify.post('/tecnologia/tipos-equipamento', { preHandler: [authenticate] }, tiposEquipamento.criar)
+    fastify.put('/tecnologia/tipos-equipamento/:id', { preHandler: [authenticate] }, tiposEquipamento.atualizar)
+    fastify.delete('/tecnologia/tipos-equipamento/:id', { preHandler: [authenticate] }, tiposEquipamento.excluir)
+
+    fastify.get('/tecnologia/marcas', { preHandler: [authenticate] }, marcas.listar)
+    fastify.post('/tecnologia/marcas', { preHandler: [authenticate] }, marcas.criar)
+    fastify.put('/tecnologia/marcas/:id', { preHandler: [authenticate] }, marcas.atualizar)
+    fastify.delete('/tecnologia/marcas/:id', { preHandler: [authenticate] }, marcas.excluir)
+
+    fastify.get('/tecnologia/modelos', { preHandler: [authenticate] }, modelos.listar)
+    fastify.post('/tecnologia/modelos', { preHandler: [authenticate] }, modelos.criar)
+    fastify.put('/tecnologia/modelos/:id', { preHandler: [authenticate] }, modelos.atualizar)
+    fastify.delete('/tecnologia/modelos/:id', { preHandler: [authenticate] }, modelos.excluir)
+
+    fastify.get('/tecnologia/areas', { preHandler: [authenticate] }, areas.listar)
+    fastify.post('/tecnologia/areas', { preHandler: [authenticate] }, areas.criar)
+    fastify.put('/tecnologia/areas/:id', { preHandler: [authenticate] }, areas.atualizar)
+    fastify.delete('/tecnologia/areas/:id', { preHandler: [authenticate] }, areas.excluir)
 
     fastify.get('/tecnologia/equipamentos', { preHandler: [authenticate] }, getEquipamentos)
     fastify.post('/tecnologia/equipamentos', { preHandler: [authenticate] }, createEquipamento)

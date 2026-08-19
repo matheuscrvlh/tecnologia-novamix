@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import PageShell from '../components/PageShell'
 import DataTable from '../components/DataTable'
+import ConfirmModal from '../components/ConfirmModal'
 import Field, { inputClass } from '../components/Field'
+import SelectComNovo from '../components/SelectComNovo'
 import PillFilter from '../components/PillFilter'
 import FiltersMenu from '../components/FiltersMenu'
 import { useMe } from '../hooks/useMe'
 import { useLista } from '../hooks/useLista'
-import { apiPost, apiPut, apiDelete } from '../lib/api'
-import type { Equipamento, Loja } from '../types/tecnologia'
+import { apiPost, apiPut, apiDelete, ApiError } from '../lib/api'
+import type { CadastroSimples, Equipamento, Loja } from '../types/tecnologia'
 
 const STATUS_OPCOES = [
     { value: true, label: 'Ativo' },
@@ -22,10 +24,10 @@ const VERIFICAR_OPCOES = [
 const FORM_VAZIO = {
     patrimonio: '',
     filial_id: '',
-    local: '',
-    equipamento: '',
-    marca: '',
-    modelo: '',
+    local_id: '',
+    equipamento_id: '',
+    marca_id: '',
+    modelo_id: '',
     ip: '',
     status: true,
     verificar: false,
@@ -35,6 +37,12 @@ export default function Equipamentos() {
     const { me, loading: loadingMe, error: meError } = useMe()
     const { rows, loading, erro, recarregar } = useLista<Equipamento>('/tecnologia/equipamentos')
     const { rows: lojas } = useLista<Loja>('/tecnologia/lojas')
+    const { rows: locais, recarregar: recarregarLocais } = useLista<CadastroSimples>('/tecnologia/locais')
+    const { rows: tiposEquipamento, recarregar: recarregarTiposEquipamento } = useLista<CadastroSimples>(
+        '/tecnologia/tipos-equipamento'
+    )
+    const { rows: marcas, recarregar: recarregarMarcas } = useLista<CadastroSimples>('/tecnologia/marcas')
+    const { rows: modelos, recarregar: recarregarModelos } = useLista<CadastroSimples>('/tecnologia/modelos')
 
     const [busca, setBusca] = useState('')
     const [formAberto, setFormAberto] = useState(false)
@@ -42,6 +50,10 @@ export default function Equipamentos() {
     const [form, setForm] = useState(FORM_VAZIO)
     const [salvando, setSalvando] = useState(false)
     const [erroForm, setErroForm] = useState<string | null>(null)
+
+    const [paraExcluir, setParaExcluir] = useState<Equipamento | null>(null)
+    const [excluindo, setExcluindo] = useState(false)
+    const [erroExclusao, setErroExclusao] = useState<string | null>(null)
 
     const [lojasSelecionadas, setLojasSelecionadas] = useState<number[]>([])
     const [statusSelecionado, setStatusSelecionado] = useState<boolean[]>([])
@@ -61,7 +73,7 @@ export default function Equipamentos() {
         if (!statusAtivo.includes(row.status)) return false
         if (!verificarAtivo.includes(row.verificar)) return false
         if (!termo) return true
-        return [row.patrimonio, row.loja_nome, row.local, row.equipamento, row.marca, row.modelo]
+        return [row.patrimonio, row.loja_nome, row.local_nome, row.equipamento_nome, row.marca_nome, row.modelo_nome]
             .join(' ')
             .toLowerCase()
             .includes(termo)
@@ -79,10 +91,10 @@ export default function Equipamentos() {
         setForm({
             patrimonio: String(row.patrimonio),
             filial_id: String(row.filial_id),
-            local: row.local,
-            equipamento: row.equipamento,
-            marca: row.marca,
-            modelo: row.modelo,
+            local_id: String(row.local_id),
+            equipamento_id: String(row.equipamento_id),
+            marca_id: String(row.marca_id),
+            modelo_id: String(row.modelo_id),
             ip: row.ip ?? '',
             status: row.status,
             verificar: row.verificar,
@@ -102,16 +114,36 @@ export default function Equipamentos() {
             return
         }
 
+        if (!form.local_id) {
+            setErroForm('Selecione um local.')
+            return
+        }
+
+        if (!form.equipamento_id) {
+            setErroForm('Selecione um tipo de equipamento.')
+            return
+        }
+
+        if (!form.marca_id) {
+            setErroForm('Selecione uma marca.')
+            return
+        }
+
+        if (!form.modelo_id) {
+            setErroForm('Selecione um modelo.')
+            return
+        }
+
         setSalvando(true)
         setErroForm(null)
 
         const payload = {
             patrimonio: Number(form.patrimonio),
             filial_id: Number(form.filial_id),
-            local: form.local,
-            equipamento: form.equipamento,
-            marca: form.marca,
-            modelo: form.modelo,
+            local_id: Number(form.local_id),
+            equipamento_id: Number(form.equipamento_id),
+            marca_id: Number(form.marca_id),
+            modelo_id: Number(form.modelo_id),
             ip: form.ip || null,
             status: form.status,
             verificar: form.verificar,
@@ -132,10 +164,21 @@ export default function Equipamentos() {
         }
     }
 
-    async function excluir(row: Equipamento) {
-        if (!window.confirm(`Excluir o equipamento de patrimônio ${row.patrimonio}?`)) return
-        await apiDelete(`/tecnologia/equipamentos/${row.id}`)
-        await recarregar()
+    async function confirmarExclusao() {
+        if (!paraExcluir) return
+
+        setExcluindo(true)
+        setErroExclusao(null)
+
+        try {
+            await apiDelete(`/tecnologia/equipamentos/${paraExcluir.id}`)
+            setParaExcluir(null)
+            await recarregar()
+        } catch (err) {
+            setErroExclusao(err instanceof ApiError ? err.message : 'Erro ao excluir equipamento.')
+        } finally {
+            setExcluindo(false)
+        }
     }
 
     return (
@@ -220,38 +263,38 @@ export default function Equipamentos() {
                                 ))}
                             </select>
                         </Field>
-                        <Field label='Local'>
-                            <input
-                                type='text'
-                                className={inputClass}
-                                value={form.local}
-                                onChange={(e) => setForm({ ...form, local: e.target.value })}
-                            />
-                        </Field>
-                        <Field label='Equipamento'>
-                            <input
-                                type='text'
-                                className={inputClass}
-                                value={form.equipamento}
-                                onChange={(e) => setForm({ ...form, equipamento: e.target.value })}
-                            />
-                        </Field>
-                        <Field label='Marca'>
-                            <input
-                                type='text'
-                                className={inputClass}
-                                value={form.marca}
-                                onChange={(e) => setForm({ ...form, marca: e.target.value })}
-                            />
-                        </Field>
-                        <Field label='Modelo'>
-                            <input
-                                type='text'
-                                className={inputClass}
-                                value={form.modelo}
-                                onChange={(e) => setForm({ ...form, modelo: e.target.value })}
-                            />
-                        </Field>
+                        <SelectComNovo
+                            label='Local'
+                            endpoint='/tecnologia/locais'
+                            itens={locais}
+                            recarregar={recarregarLocais}
+                            value={form.local_id}
+                            onChange={(id) => setForm({ ...form, local_id: id })}
+                        />
+                        <SelectComNovo
+                            label='Equipamento'
+                            endpoint='/tecnologia/tipos-equipamento'
+                            itens={tiposEquipamento}
+                            recarregar={recarregarTiposEquipamento}
+                            value={form.equipamento_id}
+                            onChange={(id) => setForm({ ...form, equipamento_id: id })}
+                        />
+                        <SelectComNovo
+                            label='Marca'
+                            endpoint='/tecnologia/marcas'
+                            itens={marcas}
+                            recarregar={recarregarMarcas}
+                            value={form.marca_id}
+                            onChange={(id) => setForm({ ...form, marca_id: id })}
+                        />
+                        <SelectComNovo
+                            label='Modelo'
+                            endpoint='/tecnologia/modelos'
+                            itens={modelos}
+                            recarregar={recarregarModelos}
+                            value={form.modelo_id}
+                            onChange={(id) => setForm({ ...form, modelo_id: id })}
+                        />
                         <Field label='IP'>
                             <input
                                 type='text'
@@ -298,6 +341,12 @@ export default function Equipamentos() {
                 </div>
             )}
 
+            {erroExclusao && (
+                <div className='mb-4 rounded-lg bg-red-light/10 px-4 py-3 text-sm font-medium text-red-base'>
+                    {erroExclusao}
+                </div>
+            )}
+
             <DataTable
                 loading={loading}
                 erro={erro}
@@ -305,10 +354,10 @@ export default function Equipamentos() {
                 columns={[
                     { key: 'patrimonio', label: 'Patrimônio', render: (row) => row.patrimonio },
                     { key: 'loja', label: 'Loja', render: (row) => row.loja_nome ?? '-' },
-                    { key: 'local', label: 'Local', render: (row) => row.local },
-                    { key: 'equipamento', label: 'Equipamento', render: (row) => row.equipamento },
-                    { key: 'marca', label: 'Marca', render: (row) => row.marca },
-                    { key: 'modelo', label: 'Modelo', render: (row) => row.modelo },
+                    { key: 'local', label: 'Local', render: (row) => row.local_nome ?? '-' },
+                    { key: 'equipamento', label: 'Equipamento', render: (row) => row.equipamento_nome ?? '-' },
+                    { key: 'marca', label: 'Marca', render: (row) => row.marca_nome ?? '-' },
+                    { key: 'modelo', label: 'Modelo', render: (row) => row.modelo_nome ?? '-' },
                     { key: 'ip', label: 'IP', render: (row) => row.ip ?? '-' },
                     {
                         key: 'status',
@@ -335,7 +384,10 @@ export default function Equipamentos() {
                                 </button>
                                 <button
                                     type='button'
-                                    onClick={() => excluir(row)}
+                                    onClick={() => {
+                                        setErroExclusao(null)
+                                        setParaExcluir(row)
+                                    }}
                                     className='font-semibold text-red-base hover:text-red-light'
                                 >
                                     Excluir
@@ -345,6 +397,16 @@ export default function Equipamentos() {
                     },
                 ]}
             />
+
+            {paraExcluir && (
+                <ConfirmModal
+                    titulo='Excluir equipamento'
+                    mensagem={`Excluir o equipamento de patrimônio ${paraExcluir.patrimonio}? Essa ação não pode ser desfeita.`}
+                    confirmando={excluindo}
+                    onConfirmar={confirmarExclusao}
+                    onCancelar={() => setParaExcluir(null)}
+                />
+            )}
         </PageShell>
     )
 }

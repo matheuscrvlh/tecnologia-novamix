@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import PageShell from '../components/PageShell'
 import DataTable from '../components/DataTable'
+import ConfirmModal from '../components/ConfirmModal'
 import Field, { inputClass } from '../components/Field'
 import PillFilter from '../components/PillFilter'
 import FiltersMenu from '../components/FiltersMenu'
 import { useMe } from '../hooks/useMe'
 import { useLista } from '../hooks/useLista'
-import { apiPost, apiPut, apiDelete } from '../lib/api'
+import { apiPost, apiPut, apiDelete, ApiError } from '../lib/api'
 import { formatDate, formatPhoneInput } from '../lib/format'
 import type { EquipamentoPessoal, Loja, UsuarioHub } from '../types/tecnologia'
 
@@ -48,6 +49,10 @@ export default function EquipamentosPessoais() {
     const [form, setForm] = useState(FORM_VAZIO)
     const [salvando, setSalvando] = useState(false)
     const [erroForm, setErroForm] = useState<string | null>(null)
+
+    const [paraExcluir, setParaExcluir] = useState<EquipamentoPessoal | null>(null)
+    const [excluindo, setExcluindo] = useState(false)
+    const [erroExclusao, setErroExclusao] = useState<string | null>(null)
 
     const [lojasSelecionadas, setLojasSelecionadas] = useState<number[]>([])
     const [statusSelecionado, setStatusSelecionado] = useState<boolean[]>([])
@@ -181,10 +186,21 @@ export default function EquipamentosPessoais() {
         }
     }
 
-    async function excluir(row: EquipamentoPessoal) {
-        if (!window.confirm(`Excluir o equipamento pessoal de patrimônio ${row.patrimonio}?`)) return
-        await apiDelete(`/tecnologia/equipamentos-pessoais/${row.id}`)
-        await recarregar()
+    async function confirmarExclusao() {
+        if (!paraExcluir) return
+
+        setExcluindo(true)
+        setErroExclusao(null)
+
+        try {
+            await apiDelete(`/tecnologia/equipamentos-pessoais/${paraExcluir.id}`)
+            setParaExcluir(null)
+            await recarregar()
+        } catch (err) {
+            setErroExclusao(err instanceof ApiError ? err.message : 'Erro ao excluir equipamento pessoal.')
+        } finally {
+            setExcluindo(false)
+        }
     }
 
     return (
@@ -391,6 +407,12 @@ export default function EquipamentosPessoais() {
                 </div>
             )}
 
+            {erroExclusao && (
+                <div className='mb-4 rounded-lg bg-red-light/10 px-4 py-3 text-sm font-medium text-red-base'>
+                    {erroExclusao}
+                </div>
+            )}
+
             <DataTable
                 loading={loading}
                 erro={erro}
@@ -441,7 +463,10 @@ export default function EquipamentosPessoais() {
                                 </button>
                                 <button
                                     type='button'
-                                    onClick={() => excluir(row)}
+                                    onClick={() => {
+                                        setErroExclusao(null)
+                                        setParaExcluir(row)
+                                    }}
                                     className='font-semibold text-red-base hover:text-red-light'
                                 >
                                     Excluir
@@ -451,6 +476,16 @@ export default function EquipamentosPessoais() {
                     },
                 ]}
             />
+
+            {paraExcluir && (
+                <ConfirmModal
+                    titulo='Excluir equipamento pessoal'
+                    mensagem={`Excluir o equipamento pessoal de patrimônio ${paraExcluir.patrimonio}? Essa ação não pode ser desfeita.`}
+                    confirmando={excluindo}
+                    onConfirmar={confirmarExclusao}
+                    onCancelar={() => setParaExcluir(null)}
+                />
+            )}
         </PageShell>
     )
 }

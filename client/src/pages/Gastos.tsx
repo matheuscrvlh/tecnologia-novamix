@@ -1,15 +1,19 @@
 import { useState } from 'react'
 import PageShell from '../components/PageShell'
 import DataTable from '../components/DataTable'
+import ConfirmModal from '../components/ConfirmModal'
 import Field, { inputClass } from '../components/Field'
+import SelectComNovo from '../components/SelectComNovo'
 import PillFilter from '../components/PillFilter'
 import DateRangeFilter from '../components/DateRangeFilter'
 import FiltersMenu from '../components/FiltersMenu'
 import { useMe } from '../hooks/useMe'
 import { useLista } from '../hooks/useLista'
-import { apiPost, apiPut, apiDelete } from '../lib/api'
+import { apiPost, apiPut, apiDelete, ApiError } from '../lib/api'
 import { formatCurrency, formatDate, formatCnpjInput, onlyDigits } from '../lib/format'
-import type { Equipamento, Fornecedor, Gasto, Loja, UsuarioHub } from '../types/tecnologia'
+import type { CadastroSimples, Equipamento, Fornecedor, Gasto, Loja, UsuarioHub } from '../types/tecnologia'
+
+const TIPO_OPCOES = ['Manutenção', 'Compra']
 
 const FORM_VAZIO = {
     fornecedor_id: '',
@@ -17,7 +21,7 @@ const FORM_VAZIO = {
     patrimonio: '',
     tipo: '',
     obs: '',
-    area: '',
+    area_id: '',
     valor: '',
     pagamento: '',
     liberacao: '',
@@ -33,6 +37,7 @@ export default function Gastos() {
     const { rows: lojas } = useLista<Loja>('/tecnologia/lojas')
     const { rows: equipamentos } = useLista<Equipamento>('/tecnologia/equipamentos')
     const { rows: usuarios } = useLista<UsuarioHub>('/tecnologia/usuarios')
+    const { rows: areas, recarregar: recarregarAreas } = useLista<CadastroSimples>('/tecnologia/areas')
 
     const [busca, setBusca] = useState('')
     const [formAberto, setFormAberto] = useState(false)
@@ -45,6 +50,10 @@ export default function Gastos() {
     const [novoFornecedor, setNovoFornecedor] = useState(FORNECEDOR_VAZIO)
     const [salvandoFornecedor, setSalvandoFornecedor] = useState(false)
     const [erroFornecedor, setErroFornecedor] = useState<string | null>(null)
+
+    const [paraExcluir, setParaExcluir] = useState<Gasto | null>(null)
+    const [excluindo, setExcluindo] = useState(false)
+    const [erroExclusao, setErroExclusao] = useState<string | null>(null)
 
     const [lojasSelecionadas, setLojasSelecionadas] = useState<number[]>([])
     const [dataInicio, setDataInicio] = useState('')
@@ -60,7 +69,15 @@ export default function Gastos() {
         if (dataInicio && data < dataInicio) return false
         if (dataFim && data > dataFim) return false
         if (!termo) return true
-        return [row.fornecedor_nome, row.loja_nome, row.tipo, row.area, row.pagamento, row.liberacao_nome, row.usuario_nome]
+        return [
+            row.fornecedor_nome,
+            row.loja_nome,
+            row.tipo,
+            row.area_nome,
+            row.pagamento,
+            row.liberacao_nome,
+            row.usuario_nome,
+        ]
             .join(' ')
             .toLowerCase()
             .includes(termo)
@@ -81,7 +98,7 @@ export default function Gastos() {
             patrimonio: row.patrimonio ? String(row.patrimonio) : '',
             tipo: row.tipo,
             obs: row.obs ?? '',
-            area: row.area,
+            area_id: String(row.area_id),
             valor: row.valor,
             pagamento: row.pagamento,
             liberacao: String(row.liberacao),
@@ -108,6 +125,16 @@ export default function Gastos() {
             return
         }
 
+        if (!form.tipo) {
+            setErroForm('Selecione o tipo do gasto.')
+            return
+        }
+
+        if (!form.area_id) {
+            setErroForm('Selecione uma área.')
+            return
+        }
+
         if (!form.liberacao) {
             setErroForm('Selecione quem liberou o gasto.')
             return
@@ -122,7 +149,7 @@ export default function Gastos() {
             patrimonio: form.patrimonio ? Number(form.patrimonio) : null,
             tipo: form.tipo,
             obs: form.obs || null,
-            area: form.area,
+            area_id: Number(form.area_id),
             valor: Number(form.valor),
             pagamento: form.pagamento,
             liberacao: Number(form.liberacao),
@@ -144,11 +171,21 @@ export default function Gastos() {
         }
     }
 
-    async function excluir(row: Gasto) {
-        if (!window.confirm(`Excluir o gasto com ${row.fornecedor_nome ?? 'fornecedor'} de ${formatCurrency(row.valor)}?`))
-            return
-        await apiDelete(`/tecnologia/gastos/${row.id}`)
-        await recarregar()
+    async function confirmarExclusao() {
+        if (!paraExcluir) return
+
+        setExcluindo(true)
+        setErroExclusao(null)
+
+        try {
+            await apiDelete(`/tecnologia/gastos/${paraExcluir.id}`)
+            setParaExcluir(null)
+            await recarregar()
+        } catch (err) {
+            setErroExclusao(err instanceof ApiError ? err.message : 'Erro ao excluir gasto.')
+        } finally {
+            setExcluindo(false)
+        }
     }
 
     async function salvarFornecedor() {
@@ -286,27 +323,33 @@ export default function Gastos() {
                                 <option value=''>Nenhum</option>
                                 {equipamentos.map((eq) => (
                                     <option key={eq.id} value={eq.patrimonio}>
-                                        {eq.patrimonio} - {eq.equipamento} ({eq.loja_nome ?? '-'})
+                                        {eq.patrimonio} - {eq.equipamento_nome} ({eq.loja_nome ?? '-'})
                                     </option>
                                 ))}
                             </select>
                         </Field>
                         <Field label='Tipo'>
-                            <input
-                                type='text'
+                            <select
                                 className={inputClass}
                                 value={form.tipo}
                                 onChange={(e) => setForm({ ...form, tipo: e.target.value })}
-                            />
+                            >
+                                <option value=''>Selecione...</option>
+                                {TIPO_OPCOES.map((opcao) => (
+                                    <option key={opcao} value={opcao}>
+                                        {opcao}
+                                    </option>
+                                ))}
+                            </select>
                         </Field>
-                        <Field label='Área'>
-                            <input
-                                type='text'
-                                className={inputClass}
-                                value={form.area}
-                                onChange={(e) => setForm({ ...form, area: e.target.value })}
-                            />
-                        </Field>
+                        <SelectComNovo
+                            label='Área'
+                            endpoint='/tecnologia/areas'
+                            itens={areas}
+                            recarregar={recarregarAreas}
+                            value={form.area_id}
+                            onChange={(id) => setForm({ ...form, area_id: id })}
+                        />
                         <Field label='Valor'>
                             <input
                                 type='number'
@@ -449,6 +492,12 @@ export default function Gastos() {
                 </div>
             )}
 
+            {erroExclusao && (
+                <div className='mb-4 rounded-lg bg-red-light/10 px-4 py-3 text-sm font-medium text-red-base'>
+                    {erroExclusao}
+                </div>
+            )}
+
             <DataTable
                 loading={loading}
                 erro={erro}
@@ -457,7 +506,7 @@ export default function Gastos() {
                     { key: 'fornecedor', label: 'Fornecedor', render: (row) => row.fornecedor_nome ?? '-' },
                     { key: 'loja', label: 'Loja', render: (row) => row.loja_nome ?? '-' },
                     { key: 'tipo', label: 'Tipo', render: (row) => row.tipo },
-                    { key: 'area', label: 'Área', render: (row) => row.area },
+                    { key: 'area', label: 'Área', render: (row) => row.area_nome ?? '-' },
                     { key: 'valor', label: 'Valor', align: 'right', render: (row) => formatCurrency(row.valor) },
                     { key: 'pagamento', label: 'Pagamento', render: (row) => row.pagamento },
                     { key: 'liberacao', label: 'Liberação', render: (row) => row.liberacao_nome ?? '-' },
@@ -479,7 +528,10 @@ export default function Gastos() {
                                 </button>
                                 <button
                                     type='button'
-                                    onClick={() => excluir(row)}
+                                    onClick={() => {
+                                        setErroExclusao(null)
+                                        setParaExcluir(row)
+                                    }}
                                     className='font-semibold text-red-base hover:text-red-light'
                                 >
                                     Excluir
@@ -489,6 +541,16 @@ export default function Gastos() {
                     },
                 ]}
             />
+
+            {paraExcluir && (
+                <ConfirmModal
+                    titulo='Excluir gasto'
+                    mensagem={`Excluir o gasto com ${paraExcluir.fornecedor_nome ?? 'fornecedor'} de ${formatCurrency(paraExcluir.valor)}? Essa ação não pode ser desfeita.`}
+                    confirmando={excluindo}
+                    onConfirmar={confirmarExclusao}
+                    onCancelar={() => setParaExcluir(null)}
+                />
+            )}
         </PageShell>
     )
 }
