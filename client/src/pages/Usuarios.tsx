@@ -2,7 +2,7 @@ import { useState } from 'react'
 import PageShell from '../components/PageShell'
 import DataTable from '../components/DataTable'
 import AcessosModal from '../components/AcessosModal'
-import PillFilter from '../components/PillFilter'
+import SelectFilter from '../components/SelectFilter'
 import FiltersMenu from '../components/FiltersMenu'
 import { inputClass } from '../components/Field'
 import { useMe } from '../hooks/useMe'
@@ -21,26 +21,21 @@ export default function Usuarios() {
     const [usuarioAcessos, setUsuarioAcessos] = useState<UsuarioHub | null>(null)
 
     const [busca, setBusca] = useState('')
-    const [setoresSelecionados, setSetoresSelecionados] = useState<string[]>([])
-    const [perfisSelecionados, setPerfisSelecionados] = useState<string[]>([])
-    const [statusSelecionado, setStatusSelecionado] = useState<boolean[]>([])
+    const [setorFiltro, setSetorFiltro] = useState<string | 'all'>('all')
+    const [perfilFiltro, setPerfilFiltro] = useState<string | 'all'>('all')
+    const [statusFiltro, setStatusFiltro] = useState<boolean | 'all'>('all')
 
     const setoresDisponiveis = [...new Set(rows.map((r) => r.sector_name ?? 'Sem setor'))].sort()
     const perfisDisponiveis = [...new Set(rows.map((r) => r.role))].sort()
 
-    const setoresAtivos = setoresSelecionados.length > 0 ? setoresSelecionados : setoresDisponiveis
-    const perfisAtivos = perfisSelecionados.length > 0 ? perfisSelecionados : perfisDisponiveis
-    const statusAtivo = statusSelecionado.length > 0 ? statusSelecionado : [true, false]
     const filtrosAtivos =
-        (setoresSelecionados.length > 0 ? 1 : 0) +
-        (perfisSelecionados.length > 0 ? 1 : 0) +
-        (statusSelecionado.length > 0 ? 1 : 0)
+        (setorFiltro !== 'all' ? 1 : 0) + (perfilFiltro !== 'all' ? 1 : 0) + (statusFiltro !== 'all' ? 1 : 0)
 
     const termo = busca.trim().toLowerCase()
     const rowsFiltradas = rows.filter((row) => {
-        if (!setoresAtivos.includes(row.sector_name ?? 'Sem setor')) return false
-        if (!perfisAtivos.includes(row.role)) return false
-        if (!statusAtivo.includes(row.status)) return false
+        if (setorFiltro !== 'all' && (row.sector_name ?? 'Sem setor') !== setorFiltro) return false
+        if (perfilFiltro !== 'all' && row.role !== perfilFiltro) return false
+        if (statusFiltro !== 'all' && row.status !== statusFiltro) return false
         if (!termo) return true
         return [row.name, row.login, row.sector_name, row.role].join(' ').toLowerCase().includes(termo)
     })
@@ -62,24 +57,19 @@ export default function Usuarios() {
                     className={`${inputClass} w-full max-w-sm`}
                 />
                 <FiltersMenu ativos={filtrosAtivos}>
-                    <PillFilter
+                    <SelectFilter
                         label='Setor'
                         options={setoresDisponiveis.map((setor) => ({ value: setor, label: setor }))}
-                        selected={setoresAtivos}
-                        onChange={setSetoresSelecionados}
+                        value={setorFiltro}
+                        onChange={setSetorFiltro}
                     />
-                    <PillFilter
+                    <SelectFilter
                         label='Perfil'
                         options={perfisDisponiveis.map((perfil) => ({ value: perfil, label: perfil }))}
-                        selected={perfisAtivos}
-                        onChange={setPerfisSelecionados}
+                        value={perfilFiltro}
+                        onChange={setPerfilFiltro}
                     />
-                    <PillFilter
-                        label='Status'
-                        options={STATUS_OPCOES}
-                        selected={statusAtivo}
-                        onChange={setStatusSelecionado}
-                    />
+                    <SelectFilter label='Status' options={STATUS_OPCOES} value={statusFiltro} onChange={setStatusFiltro} />
                 </FiltersMenu>
             </div>
 

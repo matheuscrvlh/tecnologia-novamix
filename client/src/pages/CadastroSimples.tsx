@@ -3,7 +3,7 @@ import DataTable from '../components/DataTable'
 import ConfirmModal from '../components/ConfirmModal'
 import RowActions from '../components/RowActions'
 import Field, { inputClass } from '../components/Field'
-import PillFilter from '../components/PillFilter'
+import SelectFilter from '../components/SelectFilter'
 import FiltersMenu from '../components/FiltersMenu'
 import { useLista } from '../hooks/useLista'
 import { apiPost, apiPut, apiDelete, ApiError } from '../lib/api'
@@ -33,17 +33,16 @@ export default function CadastroSimplesPage({ titulo, subtitulo, endpoint, label
     const [salvando, setSalvando] = useState(false)
     const [erroForm, setErroForm] = useState<string | null>(null)
 
-    const [statusSelecionado, setStatusSelecionado] = useState<boolean[]>([])
+    const [statusFiltro, setStatusFiltro] = useState<boolean | 'all'>('all')
     const [paraExcluir, setParaExcluir] = useState<CadastroSimples | null>(null)
     const [excluindo, setExcluindo] = useState(false)
     const [erroExclusao, setErroExclusao] = useState<string | null>(null)
 
-    const statusAtivo = statusSelecionado.length > 0 ? statusSelecionado : [true, false]
-    const filtrosAtivos = statusSelecionado.length > 0 ? 1 : 0
+    const filtrosAtivos = statusFiltro !== 'all' ? 1 : 0
 
     const termo = busca.trim().toLowerCase()
     const rowsFiltradas = rows.filter((row) => {
-        if (!statusAtivo.includes(row.status)) return false
+        if (statusFiltro !== 'all' && row.status !== statusFiltro) return false
         if (!termo) return true
         return row.nome.toLowerCase().includes(termo)
     })
@@ -135,7 +134,7 @@ export default function CadastroSimplesPage({ titulo, subtitulo, endpoint, label
                     className={`${inputClass} w-full max-w-sm`}
                 />
                 <FiltersMenu ativos={filtrosAtivos}>
-                    <PillFilter label='Status' options={STATUS_OPCOES} selected={statusAtivo} onChange={setStatusSelecionado} />
+                    <SelectFilter label='Status' options={STATUS_OPCOES} value={statusFiltro} onChange={setStatusFiltro} />
                 </FiltersMenu>
             </div>
 

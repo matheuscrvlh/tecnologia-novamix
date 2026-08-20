@@ -5,7 +5,7 @@ import ConfirmModal from '../components/ConfirmModal'
 import RowActions from '../components/RowActions'
 import Field, { inputClass } from '../components/Field'
 import SelectComNovo from '../components/SelectComNovo'
-import PillFilter from '../components/PillFilter'
+import SelectFilter from '../components/SelectFilter'
 import FiltersMenu from '../components/FiltersMenu'
 import { useMe } from '../hooks/useMe'
 import { useLista } from '../hooks/useLista'
@@ -56,23 +56,18 @@ export default function Equipamentos() {
     const [excluindo, setExcluindo] = useState(false)
     const [erroExclusao, setErroExclusao] = useState<string | null>(null)
 
-    const [lojasSelecionadas, setLojasSelecionadas] = useState<number[]>([])
-    const [statusSelecionado, setStatusSelecionado] = useState<boolean[]>([])
-    const [verificarSelecionado, setVerificarSelecionado] = useState<boolean[]>([])
+    const [lojaFiltro, setLojaFiltro] = useState<number | 'all'>('all')
+    const [statusFiltro, setStatusFiltro] = useState<boolean | 'all'>('all')
+    const [verificarFiltro, setVerificarFiltro] = useState<boolean | 'all'>('all')
 
-    const lojasAtivas = lojasSelecionadas.length > 0 ? lojasSelecionadas : lojas.map((l) => l.id)
-    const statusAtivo = statusSelecionado.length > 0 ? statusSelecionado : [true, false]
-    const verificarAtivo = verificarSelecionado.length > 0 ? verificarSelecionado : [true, false]
     const filtrosAtivos =
-        (lojasSelecionadas.length > 0 ? 1 : 0) +
-        (statusSelecionado.length > 0 ? 1 : 0) +
-        (verificarSelecionado.length > 0 ? 1 : 0)
+        (lojaFiltro !== 'all' ? 1 : 0) + (statusFiltro !== 'all' ? 1 : 0) + (verificarFiltro !== 'all' ? 1 : 0)
 
     const termo = busca.trim().toLowerCase()
     const rowsFiltradas = rows.filter((row) => {
-        if (!lojasAtivas.includes(row.filial_id)) return false
-        if (!statusAtivo.includes(row.status)) return false
-        if (!verificarAtivo.includes(row.verificar)) return false
+        if (lojaFiltro !== 'all' && row.filial_id !== lojaFiltro) return false
+        if (statusFiltro !== 'all' && row.status !== statusFiltro) return false
+        if (verificarFiltro !== 'all' && row.verificar !== verificarFiltro) return false
         if (!termo) return true
         return [row.patrimonio, row.loja_nome, row.local_nome, row.equipamento_nome, row.marca_nome, row.modelo_nome]
             .join(' ')
@@ -190,7 +185,7 @@ export default function Equipamentos() {
             titulo='Equipamentos'
             subtitulo='Equipamentos de TI cadastrados por loja.'
         >
-            <div className='mb-6 flex flex-wrap items-center justify-between gap-3'>
+            <div className='mb-6 flex flex-wrap items-start justify-between gap-3'>
                 <div className='flex flex-wrap items-center gap-3'>
                     <input
                         type='text'
@@ -200,23 +195,18 @@ export default function Equipamentos() {
                         className={`${inputClass} w-full max-w-sm`}
                     />
                     <FiltersMenu ativos={filtrosAtivos}>
-                        <PillFilter
+                        <SelectFilter
                             label='Loja'
                             options={lojas.map((loja) => ({ value: loja.id, label: loja.name }))}
-                            selected={lojasAtivas}
-                            onChange={setLojasSelecionadas}
+                            value={lojaFiltro}
+                            onChange={setLojaFiltro}
                         />
-                        <PillFilter
-                            label='Status'
-                            options={STATUS_OPCOES}
-                            selected={statusAtivo}
-                            onChange={setStatusSelecionado}
-                        />
-                        <PillFilter
+                        <SelectFilter label='Status' options={STATUS_OPCOES} value={statusFiltro} onChange={setStatusFiltro} />
+                        <SelectFilter
                             label='Verificar'
                             options={VERIFICAR_OPCOES}
-                            selected={verificarAtivo}
-                            onChange={setVerificarSelecionado}
+                            value={verificarFiltro}
+                            onChange={setVerificarFiltro}
                         />
                     </FiltersMenu>
                 </div>

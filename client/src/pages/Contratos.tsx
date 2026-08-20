@@ -6,7 +6,7 @@ import RowActions from '../components/RowActions'
 import Field, { inputClass } from '../components/Field'
 import SelectComNovo from '../components/SelectComNovo'
 import FornecedorSelect from '../components/FornecedorSelect'
-import PillFilter from '../components/PillFilter'
+import SelectFilter from '../components/SelectFilter'
 import DateRangeFilter from '../components/DateRangeFilter'
 import FiltersMenu from '../components/FiltersMenu'
 import { useMe } from '../hooks/useMe'
@@ -51,22 +51,18 @@ export default function Contratos() {
     const [excluindo, setExcluindo] = useState(false)
     const [erroExclusao, setErroExclusao] = useState<string | null>(null)
 
-    const [lojasSelecionadas, setLojasSelecionadas] = useState<number[]>([])
-    const [statusSelecionado, setStatusSelecionado] = useState<boolean[]>([])
+    const [lojaFiltro, setLojaFiltro] = useState<number | 'all'>('all')
+    const [statusFiltro, setStatusFiltro] = useState<boolean | 'all'>('all')
     const [dataInicio, setDataInicio] = useState('')
     const [dataFim, setDataFim] = useState('')
 
-    const lojasAtivas = lojasSelecionadas.length > 0 ? lojasSelecionadas : lojas.map((l) => l.id)
-    const statusAtivo = statusSelecionado.length > 0 ? statusSelecionado : [true, false]
     const filtrosAtivos =
-        (lojasSelecionadas.length > 0 ? 1 : 0) +
-        (statusSelecionado.length > 0 ? 1 : 0) +
-        (dataInicio || dataFim ? 1 : 0)
+        (lojaFiltro !== 'all' ? 1 : 0) + (statusFiltro !== 'all' ? 1 : 0) + (dataInicio || dataFim ? 1 : 0)
 
     const termo = busca.trim().toLowerCase()
     const rowsFiltradas = rows.filter((row) => {
-        if (!lojasAtivas.includes(row.filial_id)) return false
-        if (!statusAtivo.includes(row.status)) return false
+        if (lojaFiltro !== 'all' && row.filial_id !== lojaFiltro) return false
+        if (statusFiltro !== 'all' && row.status !== statusFiltro) return false
         const data = row.data_contrato.slice(0, 10)
         if (dataInicio && data < dataInicio) return false
         if (dataFim && data > dataFim) return false
@@ -180,7 +176,7 @@ export default function Contratos() {
             titulo='Contratos'
             subtitulo='Contratos de TI por fornecedor e loja.'
         >
-            <div className='mb-6 flex flex-wrap items-center justify-between gap-3'>
+            <div className='mb-6 flex flex-wrap items-start justify-between gap-3'>
                 <div className='flex flex-wrap items-center gap-3'>
                     <input
                         type='text'
@@ -190,18 +186,13 @@ export default function Contratos() {
                         className={`${inputClass} w-full max-w-sm`}
                     />
                     <FiltersMenu ativos={filtrosAtivos}>
-                        <PillFilter
+                        <SelectFilter
                             label='Loja'
                             options={lojas.map((loja) => ({ value: loja.id, label: loja.name }))}
-                            selected={lojasAtivas}
-                            onChange={setLojasSelecionadas}
+                            value={lojaFiltro}
+                            onChange={setLojaFiltro}
                         />
-                        <PillFilter
-                            label='Status'
-                            options={STATUS_OPCOES}
-                            selected={statusAtivo}
-                            onChange={setStatusSelecionado}
-                        />
+                        <SelectFilter label='Status' options={STATUS_OPCOES} value={statusFiltro} onChange={setStatusFiltro} />
                         <DateRangeFilter
                             label='Período'
                             inicio={dataInicio}

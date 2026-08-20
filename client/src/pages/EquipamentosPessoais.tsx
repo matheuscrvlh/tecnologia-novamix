@@ -4,7 +4,7 @@ import DataTable from '../components/DataTable'
 import ConfirmModal from '../components/ConfirmModal'
 import RowActions from '../components/RowActions'
 import Field, { inputClass } from '../components/Field'
-import PillFilter from '../components/PillFilter'
+import SelectFilter from '../components/SelectFilter'
 import FiltersMenu from '../components/FiltersMenu'
 import { useMe } from '../hooks/useMe'
 import { useLista } from '../hooks/useLista'
@@ -55,23 +55,18 @@ export default function EquipamentosPessoais() {
     const [excluindo, setExcluindo] = useState(false)
     const [erroExclusao, setErroExclusao] = useState<string | null>(null)
 
-    const [lojasSelecionadas, setLojasSelecionadas] = useState<number[]>([])
-    const [statusSelecionado, setStatusSelecionado] = useState<boolean[]>([])
-    const [avariasSelecionado, setAvariasSelecionado] = useState<boolean[]>([])
+    const [lojaFiltro, setLojaFiltro] = useState<number | 'all'>('all')
+    const [statusFiltro, setStatusFiltro] = useState<boolean | 'all'>('all')
+    const [avariasFiltro, setAvariasFiltro] = useState<boolean | 'all'>('all')
 
-    const lojasAtivas = lojasSelecionadas.length > 0 ? lojasSelecionadas : lojas.map((l) => l.id)
-    const statusAtivo = statusSelecionado.length > 0 ? statusSelecionado : [true, false]
-    const avariasAtivo = avariasSelecionado.length > 0 ? avariasSelecionado : [true, false]
     const filtrosAtivos =
-        (lojasSelecionadas.length > 0 ? 1 : 0) +
-        (statusSelecionado.length > 0 ? 1 : 0) +
-        (avariasSelecionado.length > 0 ? 1 : 0)
+        (lojaFiltro !== 'all' ? 1 : 0) + (statusFiltro !== 'all' ? 1 : 0) + (avariasFiltro !== 'all' ? 1 : 0)
 
     const termo = busca.trim().toLowerCase()
     const rowsFiltradas = rows.filter((row) => {
-        if (!lojasAtivas.includes(row.filial_id)) return false
-        if (!statusAtivo.includes(row.status)) return false
-        if (!avariasAtivo.includes(row.avarias)) return false
+        if (lojaFiltro !== 'all' && row.filial_id !== lojaFiltro) return false
+        if (statusFiltro !== 'all' && row.status !== statusFiltro) return false
+        if (avariasFiltro !== 'all' && row.avarias !== avariasFiltro) return false
         if (!termo) return true
         return [row.patrimonio, row.loja_nome, row.tipo, row.marca, row.modelo, row.usuario_nome]
             .join(' ')
@@ -212,7 +207,7 @@ export default function EquipamentosPessoais() {
             titulo='Equipamentos pessoais'
             subtitulo='Equipamentos entregues a colaboradores.'
         >
-            <div className='mb-6 flex flex-wrap items-center justify-between gap-3'>
+            <div className='mb-6 flex flex-wrap items-start justify-between gap-3'>
                 <div className='flex flex-wrap items-center gap-3'>
                     <input
                         type='text'
@@ -222,24 +217,14 @@ export default function EquipamentosPessoais() {
                         className={`${inputClass} w-full max-w-sm`}
                     />
                     <FiltersMenu ativos={filtrosAtivos}>
-                        <PillFilter
+                        <SelectFilter
                             label='Loja'
                             options={lojas.map((loja) => ({ value: loja.id, label: loja.name }))}
-                            selected={lojasAtivas}
-                            onChange={setLojasSelecionadas}
+                            value={lojaFiltro}
+                            onChange={setLojaFiltro}
                         />
-                        <PillFilter
-                            label='Status'
-                            options={STATUS_OPCOES}
-                            selected={statusAtivo}
-                            onChange={setStatusSelecionado}
-                        />
-                        <PillFilter
-                            label='Avarias'
-                            options={AVARIAS_OPCOES}
-                            selected={avariasAtivo}
-                            onChange={setAvariasSelecionado}
-                        />
+                        <SelectFilter label='Status' options={STATUS_OPCOES} value={statusFiltro} onChange={setStatusFiltro} />
+                        <SelectFilter label='Avarias' options={AVARIAS_OPCOES} value={avariasFiltro} onChange={setAvariasFiltro} />
                     </FiltersMenu>
                 </div>
                 <button
