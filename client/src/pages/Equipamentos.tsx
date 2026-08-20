@@ -57,7 +57,7 @@ export default function Equipamentos() {
     const [erroExclusao, setErroExclusao] = useState<string | null>(null)
 
     const [lojaFiltro, setLojaFiltro] = useState<number | 'all'>('all')
-    const [statusFiltro, setStatusFiltro] = useState<boolean | 'all'>('all')
+    const [statusFiltro, setStatusFiltro] = useState<boolean | 'all'>(true)
     const [verificarFiltro, setVerificarFiltro] = useState<boolean | 'all'>('all')
 
     const filtrosAtivos =
@@ -184,32 +184,7 @@ export default function Equipamentos() {
             autorizado={me !== null}
             titulo='Equipamentos'
             subtitulo='Equipamentos de TI cadastrados por loja.'
-        >
-            <div className='mb-6 flex flex-wrap items-start justify-between gap-3'>
-                <div className='flex flex-wrap items-center gap-3'>
-                    <input
-                        type='text'
-                        value={busca}
-                        onChange={(e) => setBusca(e.target.value)}
-                        placeholder='Buscar por patrimônio, loja, local, marca...'
-                        className={`${inputClass} w-full max-w-sm`}
-                    />
-                    <FiltersMenu ativos={filtrosAtivos}>
-                        <SelectFilter
-                            label='Loja'
-                            options={lojas.map((loja) => ({ value: loja.id, label: loja.name }))}
-                            value={lojaFiltro}
-                            onChange={setLojaFiltro}
-                        />
-                        <SelectFilter label='Status' options={STATUS_OPCOES} value={statusFiltro} onChange={setStatusFiltro} />
-                        <SelectFilter
-                            label='Verificar'
-                            options={VERIFICAR_OPCOES}
-                            value={verificarFiltro}
-                            onChange={setVerificarFiltro}
-                        />
-                    </FiltersMenu>
-                </div>
+            acoes={
                 <button
                     type='button'
                     onClick={abrirNovo}
@@ -217,6 +192,31 @@ export default function Equipamentos() {
                 >
                     Novo equipamento
                 </button>
+            }
+        >
+            <div className='mb-6 flex flex-wrap items-center gap-3'>
+                <input
+                    type='text'
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    placeholder='Buscar por patrimônio, loja, local, marca...'
+                    className={`${inputClass} w-full max-w-sm`}
+                />
+                <FiltersMenu ativos={filtrosAtivos}>
+                    <SelectFilter
+                        label='Loja'
+                        options={lojas.map((loja) => ({ value: loja.id, label: loja.name }))}
+                        value={lojaFiltro}
+                        onChange={setLojaFiltro}
+                    />
+                    <SelectFilter label='Status' options={STATUS_OPCOES} value={statusFiltro} onChange={setStatusFiltro} />
+                    <SelectFilter
+                        label='Verificar'
+                        options={VERIFICAR_OPCOES}
+                        value={verificarFiltro}
+                        onChange={setVerificarFiltro}
+                    />
+                </FiltersMenu>
             </div>
 
             {formAberto && (

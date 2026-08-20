@@ -188,32 +188,7 @@ export default function Gastos() {
             autorizado={me !== null}
             titulo='Gastos'
             subtitulo='Gastos de TI por fornecedor e loja.'
-        >
-            <div className='mb-6 flex flex-wrap items-start justify-between gap-3'>
-                <div className='flex flex-wrap items-center gap-3'>
-                    <input
-                        type='text'
-                        value={busca}
-                        onChange={(e) => setBusca(e.target.value)}
-                        placeholder='Buscar por fornecedor, loja, tipo, área...'
-                        className={`${inputClass} w-full max-w-sm`}
-                    />
-                    <FiltersMenu ativos={filtrosAtivos}>
-                        <SelectFilter
-                            label='Loja'
-                            options={lojas.map((loja) => ({ value: loja.id, label: loja.name }))}
-                            value={lojaFiltro}
-                            onChange={setLojaFiltro}
-                        />
-                        <DateRangeFilter
-                            label='Período'
-                            inicio={dataInicio}
-                            fim={dataFim}
-                            onChangeInicio={setDataInicio}
-                            onChangeFim={setDataFim}
-                        />
-                    </FiltersMenu>
-                </div>
+            acoes={
                 <button
                     type='button'
                     onClick={abrirNovo}
@@ -221,6 +196,31 @@ export default function Gastos() {
                 >
                     Novo gasto
                 </button>
+            }
+        >
+            <div className='mb-6 flex flex-wrap items-center gap-3'>
+                <input
+                    type='text'
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    placeholder='Buscar por fornecedor, loja, tipo, área...'
+                    className={`${inputClass} w-full max-w-sm`}
+                />
+                <FiltersMenu ativos={filtrosAtivos}>
+                    <SelectFilter
+                        label='Loja'
+                        options={lojas.map((loja) => ({ value: loja.id, label: loja.name }))}
+                        value={lojaFiltro}
+                        onChange={setLojaFiltro}
+                    />
+                    <DateRangeFilter
+                        label='Período'
+                        inicio={dataInicio}
+                        fim={dataFim}
+                        onChangeInicio={setDataInicio}
+                        onChangeFim={setDataFim}
+                    />
+                </FiltersMenu>
             </div>
 
             {formAberto && (

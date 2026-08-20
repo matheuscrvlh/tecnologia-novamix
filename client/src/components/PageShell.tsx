@@ -9,6 +9,7 @@ type PageShellProps = {
     tituloAcessoRestrito?: string
     titulo: string
     subtitulo: string
+    acoes?: ReactNode
     filtros?: ReactNode
     children: ReactNode
 }
@@ -20,6 +21,7 @@ export default function PageShell({
     tituloAcessoRestrito = 'Acesso restrito.',
     titulo,
     subtitulo,
+    acoes,
     filtros,
     children,
 }: PageShellProps) {
@@ -62,8 +64,13 @@ export default function PageShell({
 
             <main className='flex-1 min-w-0 flex flex-col lg:ml-64'>
                 <section className='flex-1 w-full max-w-6xl mx-auto px-6 pt-20 pb-10 lg:pt-10'>
-                    <h1 className='text-2xl font-semibold text-gray-text dark:text-dark-text mb-1'>{titulo}</h1>
-                    <p className='text-sm text-gray-dark dark:text-dark-text-muted mb-6'>{subtitulo}</p>
+                    <div className='mb-6 flex flex-wrap items-start justify-between gap-4'>
+                        <div>
+                            <h1 className='text-2xl font-semibold text-gray-text dark:text-dark-text mb-1'>{titulo}</h1>
+                            <p className='text-sm text-gray-dark dark:text-dark-text-muted'>{subtitulo}</p>
+                        </div>
+                        {acoes}
+                    </div>
 
                     {filtros}
 

@@ -23,7 +23,7 @@ export default function Usuarios() {
     const [busca, setBusca] = useState('')
     const [setorFiltro, setSetorFiltro] = useState<string | 'all'>('all')
     const [perfilFiltro, setPerfilFiltro] = useState<string | 'all'>('all')
-    const [statusFiltro, setStatusFiltro] = useState<boolean | 'all'>('all')
+    const [statusFiltro, setStatusFiltro] = useState<boolean | 'all'>(true)
 
     const setoresDisponiveis = [...new Set(rows.map((r) => r.sector_name ?? 'Sem setor'))].sort()
     const perfisDisponiveis = [...new Set(rows.map((r) => r.role))].sort()

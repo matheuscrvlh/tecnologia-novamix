@@ -33,7 +33,7 @@ export default function CadastroSimplesPage({ titulo, subtitulo, endpoint, label
     const [salvando, setSalvando] = useState(false)
     const [erroForm, setErroForm] = useState<string | null>(null)
 
-    const [statusFiltro, setStatusFiltro] = useState<boolean | 'all'>('all')
+    const [statusFiltro, setStatusFiltro] = useState<boolean | 'all'>(true)
     const [paraExcluir, setParaExcluir] = useState<CadastroSimples | null>(null)
     const [excluindo, setExcluindo] = useState(false)
     const [erroExclusao, setErroExclusao] = useState<string | null>(null)

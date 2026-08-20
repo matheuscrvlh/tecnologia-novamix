@@ -52,7 +52,7 @@ export default function Contratos() {
     const [erroExclusao, setErroExclusao] = useState<string | null>(null)
 
     const [lojaFiltro, setLojaFiltro] = useState<number | 'all'>('all')
-    const [statusFiltro, setStatusFiltro] = useState<boolean | 'all'>('all')
+    const [statusFiltro, setStatusFiltro] = useState<boolean | 'all'>(true)
     const [dataInicio, setDataInicio] = useState('')
     const [dataFim, setDataFim] = useState('')
 
@@ -175,33 +175,7 @@ export default function Contratos() {
             autorizado={me !== null}
             titulo='Contratos'
             subtitulo='Contratos de TI por fornecedor e loja.'
-        >
-            <div className='mb-6 flex flex-wrap items-start justify-between gap-3'>
-                <div className='flex flex-wrap items-center gap-3'>
-                    <input
-                        type='text'
-                        value={busca}
-                        onChange={(e) => setBusca(e.target.value)}
-                        placeholder='Buscar por fornecedor, loja, área...'
-                        className={`${inputClass} w-full max-w-sm`}
-                    />
-                    <FiltersMenu ativos={filtrosAtivos}>
-                        <SelectFilter
-                            label='Loja'
-                            options={lojas.map((loja) => ({ value: loja.id, label: loja.name }))}
-                            value={lojaFiltro}
-                            onChange={setLojaFiltro}
-                        />
-                        <SelectFilter label='Status' options={STATUS_OPCOES} value={statusFiltro} onChange={setStatusFiltro} />
-                        <DateRangeFilter
-                            label='Período'
-                            inicio={dataInicio}
-                            fim={dataFim}
-                            onChangeInicio={setDataInicio}
-                            onChangeFim={setDataFim}
-                        />
-                    </FiltersMenu>
-                </div>
+            acoes={
                 <button
                     type='button'
                     onClick={abrirNovo}
@@ -209,6 +183,32 @@ export default function Contratos() {
                 >
                     Novo contrato
                 </button>
+            }
+        >
+            <div className='mb-6 flex flex-wrap items-center gap-3'>
+                <input
+                    type='text'
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    placeholder='Buscar por fornecedor, loja, área...'
+                    className={`${inputClass} w-full max-w-sm`}
+                />
+                <FiltersMenu ativos={filtrosAtivos}>
+                    <SelectFilter
+                        label='Loja'
+                        options={lojas.map((loja) => ({ value: loja.id, label: loja.name }))}
+                        value={lojaFiltro}
+                        onChange={setLojaFiltro}
+                    />
+                    <SelectFilter label='Status' options={STATUS_OPCOES} value={statusFiltro} onChange={setStatusFiltro} />
+                    <DateRangeFilter
+                        label='Período'
+                        inicio={dataInicio}
+                        fim={dataFim}
+                        onChangeInicio={setDataInicio}
+                        onChangeFim={setDataFim}
+                    />
+                </FiltersMenu>
             </div>
 
             {formAberto && (
