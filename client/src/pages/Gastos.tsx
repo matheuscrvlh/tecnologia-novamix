@@ -9,9 +9,12 @@ import FornecedorSelect from '../components/FornecedorSelect'
 import SelectFilter from '../components/SelectFilter'
 import DateRangeFilter from '../components/DateRangeFilter'
 import FiltersMenu from '../components/FiltersMenu'
+import AnexoUpload from '../components/AnexoUpload'
+import FileField from '../components/FileField'
+import CellStack from '../components/CellStack'
 import { useMe } from '../hooks/useMe'
 import { useLista } from '../hooks/useLista'
-import { apiPost, apiPut, apiDelete, ApiError } from '../lib/api'
+import { apiPost, apiPut, apiDelete, apiUpload, apiFileUrl, ApiError } from '../lib/api'
 import { formatCurrency, formatDate } from '../lib/format'
 import type { CadastroSimples, Equipamento, Fornecedor, Gasto, Loja, UsuarioHub } from '../types/tecnologia'
 
@@ -43,6 +46,8 @@ export default function Gastos() {
     const [formAberto, setFormAberto] = useState(false)
     const [editandoId, setEditandoId] = useState<number | null>(null)
     const [form, setForm] = useState(FORM_VAZIO)
+    const [arquivo, setArquivo] = useState<File | null>(null)
+    const [arquivoAtual, setArquivoAtual] = useState<string | null>(null)
     const [salvando, setSalvando] = useState(false)
     const [erroForm, setErroForm] = useState<string | null>(null)
 
@@ -80,6 +85,8 @@ export default function Gastos() {
     function abrirNovo() {
         setEditandoId(null)
         setForm(FORM_VAZIO)
+        setArquivo(null)
+        setArquivoAtual(null)
         setErroForm(null)
         setFormAberto(true)
     }
@@ -98,6 +105,8 @@ export default function Gastos() {
             liberacao: String(row.liberacao),
             data_gasto: row.data_gasto.slice(0, 10),
         })
+        setArquivo(null)
+        setArquivoAtual(row.arquivo_nome)
         setErroForm(null)
         setFormAberto(true)
     }
@@ -105,6 +114,8 @@ export default function Gastos() {
     function fecharForm() {
         setFormAberto(false)
         setEditandoId(null)
+        setArquivo(null)
+        setArquivoAtual(null)
     }
 
     async function salvar() {
@@ -150,11 +161,18 @@ export default function Gastos() {
         }
 
         try {
+            let id = editandoId
             if (editandoId) {
                 await apiPut(`/tecnologia/gastos/${editandoId}`, payload)
             } else {
-                await apiPost('/tecnologia/gastos', payload)
+                const criado = await apiPost<Gasto>('/tecnologia/gastos', payload)
+                id = criado.id
             }
+
+            if (arquivo && id) {
+                await apiUpload(`/tecnologia/gastos/${id}/arquivo`, arquivo)
+            }
+
             fecharForm()
             await recarregar()
         } catch (err) {
@@ -179,6 +197,16 @@ export default function Gastos() {
         } finally {
             setExcluindo(false)
         }
+    }
+
+    async function enviarNotaFiscal(id: number, file: File) {
+        await apiUpload(`/tecnologia/gastos/${id}/arquivo`, file)
+        await recarregar()
+    }
+
+    async function removerNotaFiscal(id: number) {
+        await apiDelete(`/tecnologia/gastos/${id}/arquivo`)
+        await recarregar()
     }
 
     return (
@@ -341,6 +369,14 @@ export default function Gastos() {
                                 />
                             </Field>
                         </div>
+                        <div className='sm:col-span-2 lg:col-span-3'>
+                            <FileField
+                                label='Nota fiscal (opcional)'
+                                arquivo={arquivo}
+                                onChange={setArquivo}
+                                nomeAtual={arquivoAtual}
+                            />
+                        </div>
                     </div>
 
                     <div className='mt-6 flex items-center gap-3'>
@@ -374,16 +410,65 @@ export default function Gastos() {
                 erro={erro}
                 rows={rowsFiltradas}
                 columns={[
-                    { key: 'fornecedor', label: 'Fornecedor', render: (row) => row.fornecedor_nome ?? '-' },
-                    { key: 'loja', label: 'Loja', render: (row) => row.loja_nome ?? '-' },
-                    { key: 'tipo', label: 'Tipo', render: (row) => row.tipo },
-                    { key: 'area', label: 'Área', render: (row) => row.area_nome ?? '-' },
-                    { key: 'valor', label: 'Valor', align: 'right', render: (row) => formatCurrency(row.valor) },
-                    { key: 'pagamento', label: 'Pagamento', render: (row) => row.pagamento },
-                    { key: 'liberacao', label: 'Liberação', render: (row) => row.liberacao_nome ?? '-' },
-                    { key: 'data_gasto', label: 'Data', render: (row) => formatDate(row.data_gasto) },
-                    { key: 'patrimonio', label: 'Patrimônio', render: (row) => row.patrimonio ?? '-' },
-                    { key: 'usuario', label: 'Registrado por', render: (row) => row.usuario_nome ?? '-' },
+                    {
+                        key: 'fornecedor',
+                        label: 'Fornecedor',
+                        wrap: true,
+                        render: (row) => <CellStack primary={row.fornecedor_nome ?? '-'} secondary={row.loja_nome} />,
+                    },
+                    {
+                        key: 'tipo',
+                        label: 'Tipo',
+                        wrap: true,
+                        render: (row) => <CellStack primary={row.tipo} secondary={row.area_nome} />,
+                    },
+                    {
+                        key: 'valor',
+                        label: 'Valor',
+                        align: 'right',
+                        render: (row) => (
+                            <CellStack primary={formatCurrency(row.valor)} secondary={row.pagamento} align='right' />
+                        ),
+                    },
+                    {
+                        key: 'data_gasto',
+                        label: 'Data',
+                        wrap: true,
+                        render: (row) => (
+                            <CellStack
+                                primary={formatDate(row.data_gasto)}
+                                secondary={row.liberacao_nome && `Liberado por ${row.liberacao_nome}`}
+                            />
+                        ),
+                    },
+                    {
+                        key: 'patrimonio',
+                        label: 'Patrimônio',
+                        wrap: true,
+                        render: (row) => (
+                            <CellStack
+                                primary={row.patrimonio ?? '-'}
+                                secondary={row.usuario_nome && `Registrado por ${row.usuario_nome}`}
+                            />
+                        ),
+                    },
+                    {
+                        key: 'nota_fiscal',
+                        label: 'Nota fiscal',
+                        align: 'right',
+                        render: (row) => (
+                            <AnexoUpload
+                                nomeArquivo={row.arquivo_nome}
+                                mimetype={row.arquivo_mimetype}
+                                urlVisualizar={apiFileUrl(`/tecnologia/gastos/${row.id}/arquivo`)}
+                                urlBaixar={apiFileUrl(`/tecnologia/gastos/${row.id}/arquivo`, true)}
+                                onUpload={(file) => enviarNotaFiscal(row.id, file)}
+                                onRemover={() => removerNotaFiscal(row.id)}
+                                rotulo='nota fiscal'
+                                mostrarNome={false}
+                            />
+                        ),
+                    },
                     {
                         key: 'acoes',
                         label: 'Ações',

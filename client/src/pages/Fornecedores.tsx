@@ -4,10 +4,17 @@ import Modal from '../components/Modal'
 import ConfirmModal from '../components/ConfirmModal'
 import RowActions from '../components/RowActions'
 import Field, { inputClass } from '../components/Field'
+import SelectFilter from '../components/SelectFilter'
+import FiltersMenu from '../components/FiltersMenu'
 import { useLista } from '../hooks/useLista'
 import { apiPost, apiPut, apiDelete, ApiError } from '../lib/api'
 import { formatCepInput, formatCnpjInput, onlyDigits } from '../lib/format'
 import type { Fornecedor } from '../types/tecnologia'
+
+const STATUS_OPCOES = [
+    { value: true, label: 'Ativo' },
+    { value: false, label: 'Inativo' },
+]
 
 const FORM_VAZIO = {
     empresa: '',
@@ -31,8 +38,13 @@ export default function Fornecedores() {
     const [excluindo, setExcluindo] = useState(false)
     const [erroExclusao, setErroExclusao] = useState<string | null>(null)
 
+    const [statusFiltro, setStatusFiltro] = useState<boolean | 'all'>(true)
+
+    const filtrosAtivos = statusFiltro !== 'all' ? 1 : 0
+
     const termo = busca.trim().toLowerCase()
     const rowsFiltradas = rows.filter((row) => {
+        if (statusFiltro !== 'all' && row.status !== statusFiltro) return false
         if (!termo) return true
         return [row.empresa, row.cnpj, row.endereco].join(' ').toLowerCase().includes(termo)
     })
@@ -126,13 +138,18 @@ export default function Fornecedores() {
     return (
         <div>
             <div className='mb-6 flex flex-wrap items-center justify-between gap-3'>
-                <input
-                    type='text'
-                    value={busca}
-                    onChange={(e) => setBusca(e.target.value)}
-                    placeholder='Buscar por empresa, CNPJ, endereço...'
-                    className={`${inputClass} w-full max-w-sm`}
-                />
+                <div className='flex flex-wrap items-center gap-3'>
+                    <input
+                        type='text'
+                        value={busca}
+                        onChange={(e) => setBusca(e.target.value)}
+                        placeholder='Buscar por empresa, CNPJ, endereço...'
+                        className={`${inputClass} w-full max-w-sm`}
+                    />
+                    <FiltersMenu ativos={filtrosAtivos}>
+                        <SelectFilter label='Status' options={STATUS_OPCOES} value={statusFiltro} onChange={setStatusFiltro} />
+                    </FiltersMenu>
+                </div>
                 <button
                     type='button'
                     onClick={abrirNovo}

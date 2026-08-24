@@ -6,9 +6,12 @@ import RowActions from '../components/RowActions'
 import Field, { inputClass } from '../components/Field'
 import SelectFilter from '../components/SelectFilter'
 import FiltersMenu from '../components/FiltersMenu'
+import AnexoUpload from '../components/AnexoUpload'
+import FileField from '../components/FileField'
+import CellStack from '../components/CellStack'
 import { useMe } from '../hooks/useMe'
 import { useLista } from '../hooks/useLista'
-import { apiPost, apiPut, apiDelete, ApiError } from '../lib/api'
+import { apiPost, apiPut, apiDelete, apiUpload, apiFileUrl, ApiError } from '../lib/api'
 import { formatDate, formatPhoneInput } from '../lib/format'
 import type { EquipamentoPessoal, Loja, UsuarioHub } from '../types/tecnologia'
 
@@ -48,6 +51,10 @@ export default function EquipamentosPessoais() {
     const [formAberto, setFormAberto] = useState(false)
     const [editandoId, setEditandoId] = useState<number | null>(null)
     const [form, setForm] = useState(FORM_VAZIO)
+    const [arquivoRecebimento, setArquivoRecebimento] = useState<File | null>(null)
+    const [arquivoDevolucao, setArquivoDevolucao] = useState<File | null>(null)
+    const [arquivoRecebimentoAtual, setArquivoRecebimentoAtual] = useState<string | null>(null)
+    const [arquivoDevolucaoAtual, setArquivoDevolucaoAtual] = useState<string | null>(null)
     const [salvando, setSalvando] = useState(false)
     const [erroForm, setErroForm] = useState<string | null>(null)
 
@@ -77,6 +84,10 @@ export default function EquipamentosPessoais() {
     function abrirNovo() {
         setEditandoId(null)
         setForm(FORM_VAZIO)
+        setArquivoRecebimento(null)
+        setArquivoDevolucao(null)
+        setArquivoRecebimentoAtual(null)
+        setArquivoDevolucaoAtual(null)
         setErroForm(null)
         setFormAberto(true)
     }
@@ -98,6 +109,10 @@ export default function EquipamentosPessoais() {
             data_recebimento: row.data_recebimento?.slice(0, 10) ?? '',
             data_devolucao: row.data_devolucao?.slice(0, 10) ?? '',
         })
+        setArquivoRecebimento(null)
+        setArquivoDevolucao(null)
+        setArquivoRecebimentoAtual(row.termo_recebimento_nome)
+        setArquivoDevolucaoAtual(row.termo_devolucao_nome)
         setErroForm(null)
         setFormAberto(true)
     }
@@ -105,6 +120,10 @@ export default function EquipamentosPessoais() {
     function fecharForm() {
         setFormAberto(false)
         setEditandoId(null)
+        setArquivoRecebimento(null)
+        setArquivoDevolucao(null)
+        setArquivoRecebimentoAtual(null)
+        setArquivoDevolucaoAtual(null)
     }
 
     async function salvar() {
@@ -168,11 +187,23 @@ export default function EquipamentosPessoais() {
         }
 
         try {
+            let id = editandoId
             if (editandoId) {
                 await apiPut(`/tecnologia/equipamentos-pessoais/${editandoId}`, payload)
             } else {
-                await apiPost('/tecnologia/equipamentos-pessoais', payload)
+                const criado = await apiPost<EquipamentoPessoal>('/tecnologia/equipamentos-pessoais', payload)
+                id = criado.id
             }
+
+            if (id) {
+                if (arquivoRecebimento) {
+                    await apiUpload(`/tecnologia/equipamentos-pessoais/${id}/termo/recebimento`, arquivoRecebimento)
+                }
+                if (arquivoDevolucao) {
+                    await apiUpload(`/tecnologia/equipamentos-pessoais/${id}/termo/devolucao`, arquivoDevolucao)
+                }
+            }
+
             fecharForm()
             await recarregar()
         } catch (err) {
@@ -197,6 +228,16 @@ export default function EquipamentosPessoais() {
         } finally {
             setExcluindo(false)
         }
+    }
+
+    async function enviarTermo(id: number, momento: 'recebimento' | 'devolucao', file: File) {
+        await apiUpload(`/tecnologia/equipamentos-pessoais/${id}/termo/${momento}`, file)
+        await recarregar()
+    }
+
+    async function removerTermo(id: number, momento: 'recebimento' | 'devolucao') {
+        await apiDelete(`/tecnologia/equipamentos-pessoais/${id}/termo/${momento}`)
+        await recarregar()
     }
 
     return (
@@ -371,6 +412,18 @@ export default function EquipamentosPessoais() {
                                 </Field>
                             </div>
                         )}
+                        <FileField
+                            label='Termo de recebimento (opcional)'
+                            arquivo={arquivoRecebimento}
+                            onChange={setArquivoRecebimento}
+                            nomeAtual={arquivoRecebimentoAtual}
+                        />
+                        <FileField
+                            label='Termo de devolução (opcional)'
+                            arquivo={arquivoDevolucao}
+                            onChange={setArquivoDevolucao}
+                            nomeAtual={arquivoDevolucaoAtual}
+                        />
                     </div>
 
                     <div className='mt-6 flex items-center gap-3'>
@@ -404,12 +457,24 @@ export default function EquipamentosPessoais() {
                 erro={erro}
                 rows={rowsFiltradas}
                 columns={[
-                    { key: 'patrimonio', label: 'Patrimônio', render: (row) => row.patrimonio },
-                    { key: 'loja', label: 'Loja', render: (row) => row.loja_nome ?? '-' },
-                    { key: 'tipo', label: 'Tipo', render: (row) => row.tipo },
-                    { key: 'marca', label: 'Marca', render: (row) => row.marca },
-                    { key: 'modelo', label: 'Modelo', render: (row) => row.modelo },
-                    { key: 'usuario', label: 'Colaborador', render: (row) => row.usuario_nome ?? '-' },
+                    {
+                        key: 'patrimonio',
+                        label: 'Patrimônio',
+                        wrap: true,
+                        render: (row) => <CellStack primary={row.patrimonio} secondary={row.loja_nome} />,
+                    },
+                    {
+                        key: 'equipamento',
+                        label: 'Equipamento',
+                        wrap: true,
+                        render: (row) => <CellStack primary={row.tipo} secondary={`${row.marca} ${row.modelo}`} />,
+                    },
+                    {
+                        key: 'usuario',
+                        label: 'Colaborador',
+                        wrap: true,
+                        render: (row) => <CellStack primary={row.usuario_nome ?? '-'} secondary={row.telefone} />,
+                    },
                     {
                         key: 'avarias',
                         label: 'Avarias',
@@ -419,21 +484,58 @@ export default function EquipamentosPessoais() {
                     {
                         key: 'status',
                         label: 'Status',
+                        wrap: true,
                         render: (row) => (
-                            <span className={row.status ? 'text-green-base' : 'text-red-base'}>
-                                {row.status ? 'Ativo' : 'Inativo'}
-                            </span>
+                            <CellStack
+                                primary={
+                                    <span className={row.status ? 'text-green-base' : 'text-red-base'}>
+                                        {row.status ? 'Ativo' : 'Inativo'}
+                                    </span>
+                                }
+                                secondary={
+                                    [
+                                        row.data_recebimento && `Receb. ${formatDate(row.data_recebimento)}`,
+                                        row.data_devolucao && `Dev. ${formatDate(row.data_devolucao)}`,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(' · ') || undefined
+                                }
+                            />
                         ),
                     },
                     {
-                        key: 'recebimento',
+                        key: 'termo_recebimento',
                         label: 'Recebimento',
-                        render: (row) => (row.data_recebimento ? formatDate(row.data_recebimento) : '-'),
+                        align: 'right',
+                        render: (row) => (
+                            <AnexoUpload
+                                nomeArquivo={row.termo_recebimento_nome}
+                                mimetype={row.termo_recebimento_mimetype}
+                                urlVisualizar={apiFileUrl(`/tecnologia/equipamentos-pessoais/${row.id}/termo/recebimento`)}
+                                urlBaixar={apiFileUrl(`/tecnologia/equipamentos-pessoais/${row.id}/termo/recebimento`, true)}
+                                onUpload={(file) => enviarTermo(row.id, 'recebimento', file)}
+                                onRemover={() => removerTermo(row.id, 'recebimento')}
+                                rotulo='termo de recebimento'
+                                mostrarNome={false}
+                            />
+                        ),
                     },
                     {
-                        key: 'devolucao',
+                        key: 'termo_devolucao',
                         label: 'Devolução',
-                        render: (row) => (row.data_devolucao ? formatDate(row.data_devolucao) : '-'),
+                        align: 'right',
+                        render: (row) => (
+                            <AnexoUpload
+                                nomeArquivo={row.termo_devolucao_nome}
+                                mimetype={row.termo_devolucao_mimetype}
+                                urlVisualizar={apiFileUrl(`/tecnologia/equipamentos-pessoais/${row.id}/termo/devolucao`)}
+                                urlBaixar={apiFileUrl(`/tecnologia/equipamentos-pessoais/${row.id}/termo/devolucao`, true)}
+                                onUpload={(file) => enviarTermo(row.id, 'devolucao', file)}
+                                onRemover={() => removerTermo(row.id, 'devolucao')}
+                                mostrarNome={false}
+                                rotulo='termo de devolução'
+                            />
+                        ),
                     },
                     {
                         key: 'acoes',

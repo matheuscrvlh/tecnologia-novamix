@@ -1,6 +1,7 @@
 import type { FastifyRequest, FastifyReply } from 'fastify'
 import { checkPermission } from '../middlewares/auth.middlewares'
 import { connHub } from '../database/hub.database'
+import { salvarArquivoUpload, removerArquivo, enviarArquivo } from '../utils/upload'
 
 const TIPOS_VALIDOS = ['Manutenção', 'Compra'] as const
 
@@ -151,6 +152,101 @@ export async function deleteGasto(req: FastifyRequest, res: FastifyReply) {
     try {
         await conn.query('DELETE FROM tecnologia.gastos WHERE id = $1', [id])
         res.code(204).send()
+    } finally {
+        conn.release()
+    }
+}
+
+export async function uploadArquivoGasto(req: FastifyRequest, res: FastifyReply) {
+    const permission = await checkPermission(req, res)
+    if (!permission) return
+
+    const { id } = req.params as { id: string }
+
+    const conn = await connHub()
+    try {
+        const { rows: existente } = await conn.query('SELECT arquivo_caminho FROM tecnologia.gastos WHERE id = $1', [id])
+        if (existente.length === 0) {
+            res.code(404).send({ error: 'Gasto não encontrado.' })
+            return
+        }
+
+        let arquivo
+        try {
+            arquivo = await salvarArquivoUpload(req, 'notas_fiscais')
+        } catch (err: any) {
+            res.code(err.statusCode ?? 400).send({ error: err.message ?? 'Erro ao enviar arquivo.' })
+            return
+        }
+
+        await removerArquivo(existente[0].arquivo_caminho)
+
+        const { rows } = await conn.query(
+            `UPDATE tecnologia.gastos
+             SET arquivo_nome = $1, arquivo_caminho = $2, arquivo_mimetype = $3, arquivo_enviado_em = NOW()
+             WHERE id = $4
+             RETURNING id`,
+            [arquivo.nomeOriginal, arquivo.caminhoRelativo, arquivo.mimetype, id]
+        )
+
+        const { rows: atualizado } = await conn.query(`${SELECT_COM_RELACOES} WHERE g.id = $1`, [rows[0].id])
+        res.send(atualizado[0])
+    } finally {
+        conn.release()
+    }
+}
+
+export async function getArquivoGasto(req: FastifyRequest, res: FastifyReply) {
+    const permission = await checkPermission(req, res)
+    if (!permission) return
+
+    const { id } = req.params as { id: string }
+    const { baixar } = req.query as { baixar?: string }
+
+    const conn = await connHub()
+    try {
+        const { rows } = await conn.query(
+            'SELECT arquivo_nome, arquivo_caminho, arquivo_mimetype FROM tecnologia.gastos WHERE id = $1',
+            [id]
+        )
+
+        if (rows.length === 0 || !rows[0].arquivo_caminho) {
+            res.code(404).send({ error: 'Arquivo não encontrado.' })
+            return
+        }
+
+        await enviarArquivo(res, rows[0].arquivo_caminho, rows[0].arquivo_nome, rows[0].arquivo_mimetype, baixar === '1')
+    } finally {
+        conn.release()
+    }
+}
+
+export async function deleteArquivoGasto(req: FastifyRequest, res: FastifyReply) {
+    const permission = await checkPermission(req, res)
+    if (!permission) return
+
+    const { id } = req.params as { id: string }
+
+    const conn = await connHub()
+    try {
+        const { rows: existente } = await conn.query('SELECT arquivo_caminho FROM tecnologia.gastos WHERE id = $1', [id])
+        if (existente.length === 0) {
+            res.code(404).send({ error: 'Gasto não encontrado.' })
+            return
+        }
+
+        await removerArquivo(existente[0].arquivo_caminho)
+
+        const { rows } = await conn.query(
+            `UPDATE tecnologia.gastos
+             SET arquivo_nome = NULL, arquivo_caminho = NULL, arquivo_mimetype = NULL, arquivo_enviado_em = NULL
+             WHERE id = $1
+             RETURNING id`,
+            [id]
+        )
+
+        const { rows: atualizado } = await conn.query(`${SELECT_COM_RELACOES} WHERE g.id = $1`, [rows[0].id])
+        res.send(atualizado[0])
     } finally {
         conn.release()
     }

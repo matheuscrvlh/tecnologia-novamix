@@ -9,9 +9,12 @@ import FornecedorSelect from '../components/FornecedorSelect'
 import SelectFilter from '../components/SelectFilter'
 import DateRangeFilter from '../components/DateRangeFilter'
 import FiltersMenu from '../components/FiltersMenu'
+import AnexoUpload from '../components/AnexoUpload'
+import FileField from '../components/FileField'
+import CellStack from '../components/CellStack'
 import { useMe } from '../hooks/useMe'
 import { useLista } from '../hooks/useLista'
-import { apiPost, apiPut, apiDelete, ApiError } from '../lib/api'
+import { apiPost, apiPut, apiDelete, apiUpload, apiFileUrl, ApiError } from '../lib/api'
 import { formatCurrency, formatDate } from '../lib/format'
 import type { CadastroSimples, Contrato, Fornecedor, Loja } from '../types/tecnologia'
 
@@ -44,6 +47,8 @@ export default function Contratos() {
     const [formAberto, setFormAberto] = useState(false)
     const [editandoId, setEditandoId] = useState<number | null>(null)
     const [form, setForm] = useState(FORM_VAZIO)
+    const [arquivo, setArquivo] = useState<File | null>(null)
+    const [arquivoAtual, setArquivoAtual] = useState<string | null>(null)
     const [salvando, setSalvando] = useState(false)
     const [erroForm, setErroForm] = useState<string | null>(null)
 
@@ -76,6 +81,8 @@ export default function Contratos() {
     function abrirNovo() {
         setEditandoId(null)
         setForm(FORM_VAZIO)
+        setArquivo(null)
+        setArquivoAtual(null)
         setErroForm(null)
         setFormAberto(true)
     }
@@ -92,6 +99,8 @@ export default function Contratos() {
             valor: row.valor,
             status: row.status,
         })
+        setArquivo(null)
+        setArquivoAtual(row.arquivo_nome)
         setErroForm(null)
         setFormAberto(true)
     }
@@ -99,6 +108,8 @@ export default function Contratos() {
     function fecharForm() {
         setFormAberto(false)
         setEditandoId(null)
+        setArquivo(null)
+        setArquivoAtual(null)
     }
 
     async function salvar() {
@@ -137,11 +148,18 @@ export default function Contratos() {
         }
 
         try {
+            let id = editandoId
             if (editandoId) {
                 await apiPut(`/tecnologia/contratos/${editandoId}`, payload)
             } else {
-                await apiPost('/tecnologia/contratos', payload)
+                const criado = await apiPost<Contrato>('/tecnologia/contratos', payload)
+                id = criado.id
             }
+
+            if (arquivo && id) {
+                await apiUpload(`/tecnologia/contratos/${id}/arquivo`, arquivo)
+            }
+
             fecharForm()
             await recarregar()
         } catch (err) {
@@ -166,6 +184,16 @@ export default function Contratos() {
         } finally {
             setExcluindo(false)
         }
+    }
+
+    async function enviarArquivoContrato(id: number, file: File) {
+        await apiUpload(`/tecnologia/contratos/${id}/arquivo`, file)
+        await recarregar()
+    }
+
+    async function removerArquivoContrato(id: number) {
+        await apiDelete(`/tecnologia/contratos/${id}/arquivo`)
+        await recarregar()
     }
 
     return (
@@ -301,6 +329,14 @@ export default function Contratos() {
                                 />
                             </Field>
                         </div>
+                        <div className='sm:col-span-2 lg:col-span-3'>
+                            <FileField
+                                label='Arquivo do contrato (opcional)'
+                                arquivo={arquivo}
+                                onChange={setArquivo}
+                                nomeAtual={arquivoAtual}
+                            />
+                        </div>
                     </div>
 
                     <div className='mt-6 flex items-center gap-3'>
@@ -334,12 +370,30 @@ export default function Contratos() {
                 erro={erro}
                 rows={rowsFiltradas}
                 columns={[
-                    { key: 'fornecedor', label: 'Empresa', render: (row) => row.fornecedor_nome ?? '-' },
-                    { key: 'loja', label: 'Loja', render: (row) => row.loja_nome ?? '-' },
-                    { key: 'data_contrato', label: 'Data', render: (row) => formatDate(row.data_contrato) },
-                    { key: 'area', label: 'Área', render: (row) => row.area_nome ?? '-' },
-                    { key: 'tipo_cobranca', label: 'Tipo de cobrança', render: (row) => row.tipo_cobranca },
-                    { key: 'valor', label: 'Valor', align: 'right', render: (row) => formatCurrency(row.valor) },
+                    {
+                        key: 'fornecedor',
+                        label: 'Empresa',
+                        wrap: true,
+                        render: (row) => <CellStack primary={row.fornecedor_nome ?? '-'} secondary={row.loja_nome} />,
+                    },
+                    {
+                        key: 'area',
+                        label: 'Área',
+                        wrap: true,
+                        render: (row) => <CellStack primary={row.area_nome ?? '-'} secondary={row.tipo_cobranca} />,
+                    },
+                    {
+                        key: 'valor',
+                        label: 'Valor',
+                        align: 'right',
+                        render: (row) => (
+                            <CellStack
+                                primary={formatCurrency(row.valor)}
+                                secondary={formatDate(row.data_contrato)}
+                                align='right'
+                            />
+                        ),
+                    },
                     { key: 'obs', label: 'Observação', wrap: true, render: (row) => row.obs ?? '-' },
                     {
                         key: 'status',
@@ -348,6 +402,23 @@ export default function Contratos() {
                             <span className={row.status ? 'text-green-base' : 'text-red-base'}>
                                 {row.status ? 'Ativo' : 'Inativo'}
                             </span>
+                        ),
+                    },
+                    {
+                        key: 'arquivo',
+                        label: 'Contrato (arquivo)',
+                        align: 'right',
+                        render: (row) => (
+                            <AnexoUpload
+                                nomeArquivo={row.arquivo_nome}
+                                mimetype={row.arquivo_mimetype}
+                                urlVisualizar={apiFileUrl(`/tecnologia/contratos/${row.id}/arquivo`)}
+                                urlBaixar={apiFileUrl(`/tecnologia/contratos/${row.id}/arquivo`, true)}
+                                onUpload={(file) => enviarArquivoContrato(row.id, file)}
+                                onRemover={() => removerArquivoContrato(row.id)}
+                                rotulo='contrato'
+                                mostrarNome={false}
+                            />
                         ),
                     },
                     {

@@ -21,9 +21,28 @@ import {
     createEquipamentoPessoal,
     updateEquipamentoPessoal,
     deleteEquipamentoPessoal,
+    uploadTermoEquipamentoPessoal,
+    getTermoEquipamentoPessoal,
+    deleteTermoEquipamentoPessoal,
 } from '../controllers/equipamentosPessoais.controller'
-import { getGastos, createGasto, updateGasto, deleteGasto } from '../controllers/gastos.controller'
-import { getContratos, createContrato, updateContrato, deleteContrato } from '../controllers/contratos.controller'
+import {
+    getGastos,
+    createGasto,
+    updateGasto,
+    deleteGasto,
+    uploadArquivoGasto,
+    getArquivoGasto,
+    deleteArquivoGasto,
+} from '../controllers/gastos.controller'
+import {
+    getContratos,
+    createContrato,
+    updateContrato,
+    deleteContrato,
+    uploadArquivoContrato,
+    getArquivoContrato,
+    deleteArquivoContrato,
+} from '../controllers/contratos.controller'
 
 const locais = criarCrudCadastro('locais', 'Local')
 const tiposEquipamento = criarCrudCadastro('tipos_equipamento', 'Tipo de equipamento')
@@ -78,14 +97,35 @@ export function tecnologiaRoutes(fastify) {
     fastify.post('/tecnologia/equipamentos-pessoais', { preHandler: [authenticate] }, createEquipamentoPessoal)
     fastify.put('/tecnologia/equipamentos-pessoais/:id', { preHandler: [authenticate] }, updateEquipamentoPessoal)
     fastify.delete('/tecnologia/equipamentos-pessoais/:id', { preHandler: [authenticate] }, deleteEquipamentoPessoal)
+    fastify.post(
+        '/tecnologia/equipamentos-pessoais/:id/termo/:momento',
+        { preHandler: [authenticate] },
+        uploadTermoEquipamentoPessoal
+    )
+    fastify.get(
+        '/tecnologia/equipamentos-pessoais/:id/termo/:momento',
+        { preHandler: [authenticate] },
+        getTermoEquipamentoPessoal
+    )
+    fastify.delete(
+        '/tecnologia/equipamentos-pessoais/:id/termo/:momento',
+        { preHandler: [authenticate] },
+        deleteTermoEquipamentoPessoal
+    )
 
     fastify.get('/tecnologia/contratos', { preHandler: [authenticate] }, getContratos)
     fastify.post('/tecnologia/contratos', { preHandler: [authenticate] }, createContrato)
     fastify.put('/tecnologia/contratos/:id', { preHandler: [authenticate] }, updateContrato)
     fastify.delete('/tecnologia/contratos/:id', { preHandler: [authenticate] }, deleteContrato)
+    fastify.post('/tecnologia/contratos/:id/arquivo', { preHandler: [authenticate] }, uploadArquivoContrato)
+    fastify.get('/tecnologia/contratos/:id/arquivo', { preHandler: [authenticate] }, getArquivoContrato)
+    fastify.delete('/tecnologia/contratos/:id/arquivo', { preHandler: [authenticate] }, deleteArquivoContrato)
 
     fastify.get('/tecnologia/gastos', { preHandler: [authenticate] }, getGastos)
     fastify.post('/tecnologia/gastos', { preHandler: [authenticate] }, createGasto)
     fastify.put('/tecnologia/gastos/:id', { preHandler: [authenticate] }, updateGasto)
     fastify.delete('/tecnologia/gastos/:id', { preHandler: [authenticate] }, deleteGasto)
+    fastify.post('/tecnologia/gastos/:id/arquivo', { preHandler: [authenticate] }, uploadArquivoGasto)
+    fastify.get('/tecnologia/gastos/:id/arquivo', { preHandler: [authenticate] }, getArquivoGasto)
+    fastify.delete('/tecnologia/gastos/:id/arquivo', { preHandler: [authenticate] }, deleteArquivoGasto)
 }

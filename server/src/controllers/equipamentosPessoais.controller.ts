@@ -1,6 +1,7 @@
 import type { FastifyRequest, FastifyReply } from 'fastify'
 import { checkPermission } from '../middlewares/auth.middlewares'
 import { connHub } from '../database/hub.database'
+import { salvarArquivoUpload, removerArquivo, enviarArquivo } from '../utils/upload'
 
 interface EquipamentoPessoalBody {
     patrimonio?: number
@@ -170,6 +171,136 @@ export async function deleteEquipamentoPessoal(req: FastifyRequest, res: Fastify
     try {
         await conn.query('DELETE FROM tecnologia.equipamentos_pessoais WHERE id = $1', [id])
         res.code(204).send()
+    } finally {
+        conn.release()
+    }
+}
+
+const MOMENTOS_TERMO = ['recebimento', 'devolucao'] as const
+type MomentoTermo = (typeof MOMENTOS_TERMO)[number]
+
+function colunasTermo(momento: MomentoTermo) {
+    const prefixo = `termo_${momento}`
+    return {
+        nome: `${prefixo}_nome`,
+        caminho: `${prefixo}_caminho`,
+        mimetype: `${prefixo}_mimetype`,
+        enviadoEm: `${prefixo}_enviado_em`,
+    }
+}
+
+export async function uploadTermoEquipamentoPessoal(req: FastifyRequest, res: FastifyReply) {
+    const permission = await checkPermission(req, res)
+    if (!permission) return
+
+    const { id, momento } = req.params as { id: string; momento: string }
+    if (!MOMENTOS_TERMO.includes(momento as MomentoTermo)) {
+        res.code(400).send({ error: 'Momento do termo inválido. Use recebimento ou devolucao.' })
+        return
+    }
+    const colunas = colunasTermo(momento as MomentoTermo)
+
+    const conn = await connHub()
+    try {
+        const { rows: existente } = await conn.query(
+            `SELECT ${colunas.caminho} AS caminho FROM tecnologia.equipamentos_pessoais WHERE id = $1`,
+            [id]
+        )
+        if (existente.length === 0) {
+            res.code(404).send({ error: 'Equipamento pessoal não encontrado.' })
+            return
+        }
+
+        let arquivo
+        try {
+            arquivo = await salvarArquivoUpload(req, 'termos_equipamentos_pessoais')
+        } catch (err: any) {
+            res.code(err.statusCode ?? 400).send({ error: err.message ?? 'Erro ao enviar arquivo.' })
+            return
+        }
+
+        await removerArquivo(existente[0].caminho)
+
+        const { rows } = await conn.query(
+            `UPDATE tecnologia.equipamentos_pessoais
+             SET ${colunas.nome} = $1, ${colunas.caminho} = $2, ${colunas.mimetype} = $3, ${colunas.enviadoEm} = NOW()
+             WHERE id = $4
+             RETURNING id`,
+            [arquivo.nomeOriginal, arquivo.caminhoRelativo, arquivo.mimetype, id]
+        )
+
+        const { rows: atualizado } = await conn.query(`${SELECT_COM_USUARIO} WHERE ep.id = $1`, [rows[0].id])
+        res.send(atualizado[0])
+    } finally {
+        conn.release()
+    }
+}
+
+export async function getTermoEquipamentoPessoal(req: FastifyRequest, res: FastifyReply) {
+    const permission = await checkPermission(req, res)
+    if (!permission) return
+
+    const { id, momento } = req.params as { id: string; momento: string }
+    const { baixar } = req.query as { baixar?: string }
+    if (!MOMENTOS_TERMO.includes(momento as MomentoTermo)) {
+        res.code(400).send({ error: 'Momento do termo inválido. Use recebimento ou devolucao.' })
+        return
+    }
+    const colunas = colunasTermo(momento as MomentoTermo)
+
+    const conn = await connHub()
+    try {
+        const { rows } = await conn.query(
+            `SELECT ${colunas.nome} AS nome, ${colunas.caminho} AS caminho, ${colunas.mimetype} AS mimetype
+             FROM tecnologia.equipamentos_pessoais WHERE id = $1`,
+            [id]
+        )
+
+        if (rows.length === 0 || !rows[0].caminho) {
+            res.code(404).send({ error: 'Arquivo não encontrado.' })
+            return
+        }
+
+        await enviarArquivo(res, rows[0].caminho, rows[0].nome, rows[0].mimetype, baixar === '1')
+    } finally {
+        conn.release()
+    }
+}
+
+export async function deleteTermoEquipamentoPessoal(req: FastifyRequest, res: FastifyReply) {
+    const permission = await checkPermission(req, res)
+    if (!permission) return
+
+    const { id, momento } = req.params as { id: string; momento: string }
+    if (!MOMENTOS_TERMO.includes(momento as MomentoTermo)) {
+        res.code(400).send({ error: 'Momento do termo inválido. Use recebimento ou devolucao.' })
+        return
+    }
+    const colunas = colunasTermo(momento as MomentoTermo)
+
+    const conn = await connHub()
+    try {
+        const { rows: existente } = await conn.query(
+            `SELECT ${colunas.caminho} AS caminho FROM tecnologia.equipamentos_pessoais WHERE id = $1`,
+            [id]
+        )
+        if (existente.length === 0) {
+            res.code(404).send({ error: 'Equipamento pessoal não encontrado.' })
+            return
+        }
+
+        await removerArquivo(existente[0].caminho)
+
+        const { rows } = await conn.query(
+            `UPDATE tecnologia.equipamentos_pessoais
+             SET ${colunas.nome} = NULL, ${colunas.caminho} = NULL, ${colunas.mimetype} = NULL, ${colunas.enviadoEm} = NULL
+             WHERE id = $1
+             RETURNING id`,
+            [id]
+        )
+
+        const { rows: atualizado } = await conn.query(`${SELECT_COM_USUARIO} WHERE ep.id = $1`, [rows[0].id])
+        res.send(atualizado[0])
     } finally {
         conn.release()
     }

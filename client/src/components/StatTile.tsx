@@ -1,3 +1,5 @@
+import type { LucideIcon } from 'lucide-react'
+
 type Tone = 'neutral' | 'good' | 'warning' | 'critical'
 
 type StatTileProps = {
@@ -5,26 +7,29 @@ type StatTileProps = {
     value: string
     hint?: string
     tone?: Tone
+    icon: LucideIcon
 }
 
-const TONE_DOT: Record<Tone, string> = {
-    neutral: 'bg-orange-base',
+const TONE_BG: Record<Tone, string> = {
+    neutral: 'bg-blue-base',
     good: 'bg-green-base',
-    warning: 'bg-orange-light',
+    warning: 'bg-orange-base',
     critical: 'bg-red-base',
 }
 
-export default function StatTile({ label, value, hint, tone = 'neutral' }: StatTileProps) {
+export default function StatTile({ label, value, hint, tone = 'neutral', icon: Icon }: StatTileProps) {
     return (
-        <div className='rounded-xl border border-gray-base/30 bg-white p-5 shadow-sm dark:border-dark-border dark:bg-dark-surface'>
-            <div className='flex items-center gap-2'>
-                <span className={`h-2 w-2 rounded-full ${TONE_DOT[tone]}`} />
+        <div className='flex items-start gap-4 rounded-xl border border-gray-base/30 bg-white p-5 shadow-sm dark:border-dark-border dark:bg-dark-surface'>
+            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white ${TONE_BG[tone]}`}>
+                <Icon className='h-5 w-5' />
+            </span>
+            <div className='min-w-0'>
                 <span className='text-xs font-semibold uppercase tracking-wide text-gray-dark dark:text-dark-text-muted'>
                     {label}
                 </span>
+                <p className='mt-1 text-2xl font-semibold text-gray-text dark:text-dark-text'>{value}</p>
+                {hint && <p className='mt-1 truncate text-xs text-gray-dark dark:text-dark-text-muted'>{hint}</p>}
             </div>
-            <p className='mt-2 text-2xl font-semibold text-gray-text dark:text-dark-text'>{value}</p>
-            {hint && <p className='mt-1 text-xs text-gray-dark dark:text-dark-text-muted'>{hint}</p>}
         </div>
     )
 }

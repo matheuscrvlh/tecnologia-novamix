@@ -1,6 +1,10 @@
 const API_URL = import.meta.env.VITE_API_URL
 const HUB_URL = 'https://hub.lojanovamix.com.br'
 
+export function apiFileUrl(path: string, baixar = false): string {
+    return `${API_URL}${path}${baixar ? '?baixar=1' : ''}`
+}
+
 export class ApiError extends Error {
     status: number
 
@@ -56,6 +60,18 @@ export async function apiPut<T>(path: string, body: unknown): Promise<T> {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
+    })
+    return handleResponse<T>(res)
+}
+
+export async function apiUpload<T>(path: string, file: File, campo = 'arquivo'): Promise<T> {
+    const formData = new FormData()
+    formData.append(campo, file)
+
+    const res = await fetch(`${API_URL}${path}`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
     })
     return handleResponse<T>(res)
 }

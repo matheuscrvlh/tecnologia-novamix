@@ -2,13 +2,14 @@ import 'dotenv/config';
 import fastify from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
+import multipart from '@fastify/multipart';
 import { tecnologiaRoutes } from './routes/tecnologia.routes';
 import { connHub } from './database/hub.database.ts';
 
 const app = fastify();
 
 await app.register(cors, {
-    origin: ['https://hub.lojanovamix.com.br'],
+    origin: ['https://hub.lojanovamix.com.br', 'https://tecnologia.lojanovamix.com.br', 'http://localhost:5173'],
     credentials: true
 });
 
@@ -23,6 +24,7 @@ if(!process.env.SERVER_PORT) {
 };
 
 app.register(cookie);
+app.register(multipart);
 app.register(tecnologiaRoutes);
 
 async function start() {

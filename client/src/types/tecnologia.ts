@@ -74,6 +74,12 @@ export interface EquipamentoPessoal {
     termo: boolean
     data_recebimento: string | null
     data_devolucao: string | null
+    termo_recebimento_nome: string | null
+    termo_recebimento_mimetype: string | null
+    termo_recebimento_enviado_em: string | null
+    termo_devolucao_nome: string | null
+    termo_devolucao_mimetype: string | null
+    termo_devolucao_enviado_em: string | null
 }
 
 export interface Loja {
@@ -109,6 +115,9 @@ export interface Gasto {
     loja_nome: string | null
     usuario_nome: string | null
     liberacao_nome: string | null
+    arquivo_nome: string | null
+    arquivo_mimetype: string | null
+    arquivo_enviado_em: string | null
 }
 
 export interface Contrato {
@@ -124,4 +133,7 @@ export interface Contrato {
     fornecedor_nome: string | null
     loja_nome: string | null
     area_nome: string | null
+    arquivo_nome: string | null
+    arquivo_mimetype: string | null
+    arquivo_enviado_em: string | null
 }

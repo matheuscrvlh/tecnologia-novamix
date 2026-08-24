@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Eye } from 'lucide-react'
 import PageShell from '../components/PageShell'
 import DataTable from '../components/DataTable'
 import AcessosModal from '../components/AcessosModal'
@@ -97,13 +98,17 @@ export default function Usuarios() {
                         label: 'Ações',
                         align: 'right',
                         render: (row) => (
-                            <button
-                                type='button'
-                                onClick={() => setUsuarioAcessos(row)}
-                                className='font-semibold text-orange-base hover:text-orange-light'
-                            >
-                                Acessos
-                            </button>
+                            <div className='flex justify-end'>
+                                <button
+                                    type='button'
+                                    onClick={() => setUsuarioAcessos(row)}
+                                    title='Acessos'
+                                    aria-label='Acessos'
+                                    className='flex h-8 w-8 items-center justify-center rounded-lg bg-blue-base text-white transition-opacity hover:opacity-80'
+                                >
+                                    <Eye className='h-4 w-4' />
+                                </button>
+                            </div>
                         ),
                     },
                 ]}

@@ -1,15 +1,17 @@
 type BarListItem = {
     label: string
     value: number
+    cor?: string
 }
 
 type BarListProps = {
     titulo: string
     itens: BarListItem[]
     formatarValor?: (valor: number) => string
+    cor?: string
 }
 
-export default function BarList({ titulo, itens, formatarValor = (v) => String(v) }: BarListProps) {
+export default function BarList({ titulo, itens, formatarValor = (v) => String(v), cor = 'bg-orange-base' }: BarListProps) {
     const maximo = Math.max(1, ...itens.map((item) => item.value))
 
     return (
@@ -19,16 +21,20 @@ export default function BarList({ titulo, itens, formatarValor = (v) => String(v
             {itens.length === 0 ? (
                 <div className='mt-3 text-sm text-gray-dark dark:text-dark-text-muted'>Sem dados ainda.</div>
             ) : (
-                <div className='mt-4 flex flex-col gap-3'>
+                <div className='mt-4 flex flex-col gap-1'>
                     {itens.map((item) => (
-                        <div key={item.label} className='flex items-center gap-3' title={`${item.label}: ${formatarValor(item.value)}`}>
+                        <div
+                            key={item.label}
+                            className='flex items-center gap-3 rounded-lg px-1 py-1.5 transition-colors hover:bg-gray/60 dark:hover:bg-dark-surface-2/60'
+                            title={`${item.label}: ${formatarValor(item.value)}`}
+                        >
                             <span className='w-28 shrink-0 truncate text-xs text-gray-dark dark:text-dark-text-muted'>
                                 {item.label}
                             </span>
-                            <div className='h-3 flex-1 bg-gray dark:bg-dark-surface-2'>
+                            <div className='h-3 flex-1 rounded-sm bg-gray dark:bg-dark-surface-2'>
                                 <div
-                                    className='h-3 bg-orange-base'
-                                    style={{ width: `${(item.value / maximo) * 100}%`, borderRadius: '0 4px 4px 0' }}
+                                    className={`h-3 rounded-r-sm ${item.cor ?? cor}`}
+                                    style={{ width: `${Math.max(2, (item.value / maximo) * 100)}%` }}
                                 />
                             </div>
                             <span className='w-20 shrink-0 text-right text-xs font-semibold text-gray-text dark:text-dark-text'>
