@@ -8,6 +8,7 @@ import Field, { inputClass } from '../components/Field'
 import SelectComNovo from '../components/SelectComNovo'
 import SelectFilter from '../components/SelectFilter'
 import FiltersMenu from '../components/FiltersMenu'
+import CellStack from '../components/CellStack'
 import { useMe } from '../hooks/useMe'
 import { useLista } from '../hooks/useLista'
 import { apiPost, apiPut, apiDelete, ApiError } from '../lib/api'
@@ -422,26 +423,48 @@ export default function Equipamentos() {
                     {
                         key: 'patrimonio',
                         label: 'Patrimônio',
-                        render: (row) => row.patrimonio ?? (row.terceirizado ? 'Terceirizado' : '-'),
+                        wrap: true,
+                        render: (row) => (
+                            <CellStack
+                                primary={row.patrimonio ?? (row.terceirizado ? 'Terceirizado' : '-')}
+                                secondary={row.loja_nome}
+                            />
+                        ),
                     },
-                    { key: 'loja', label: 'Loja', render: (row) => row.loja_nome ?? '-' },
-                    { key: 'local', label: 'Local', render: (row) => row.local_nome ?? '-' },
-                    { key: 'equipamento', label: 'Equipamento', render: (row) => row.equipamento_nome ?? '-' },
-                    { key: 'marca', label: 'Marca', render: (row) => row.marca_nome ?? '-' },
-                    { key: 'modelo', label: 'Modelo', render: (row) => row.modelo_nome ?? '-' },
-                    { key: 'ip', label: 'IP', render: (row) => row.ip ?? '-' },
-                    { key: 'codigo_aparelho', label: 'Código do aparelho', render: (row) => row.codigo_aparelho ?? '-' },
+                    {
+                        key: 'equipamento',
+                        label: 'Equipamento',
+                        wrap: true,
+                        render: (row) => <CellStack primary={row.equipamento_nome ?? '-'} secondary={row.local_nome} />,
+                    },
+                    {
+                        key: 'marca_modelo',
+                        label: 'Marca/Modelo',
+                        wrap: true,
+                        render: (row) => <CellStack primary={row.marca_nome ?? '-'} secondary={row.modelo_nome} />,
+                    },
+                    {
+                        key: 'ip_codigo',
+                        label: 'IP/Código',
+                        wrap: true,
+                        render: (row) => <CellStack primary={row.ip ?? '-'} secondary={row.codigo_aparelho} />,
+                    },
                     { key: 'observacao', label: 'Observação', wrap: true, render: (row) => row.observacao ?? '-' },
                     {
                         key: 'status',
                         label: 'Status',
+                        wrap: true,
                         render: (row) => (
-                            <span className={row.status ? 'text-green-base' : 'text-red-base'}>
-                                {row.status ? 'Ativo' : 'Inativo'}
-                            </span>
+                            <CellStack
+                                primary={
+                                    <span className={row.status ? 'text-green-base' : 'text-red-base'}>
+                                        {row.status ? 'Ativo' : 'Inativo'}
+                                    </span>
+                                }
+                                secondary={row.verificar ? 'Necessita verificação' : undefined}
+                            />
                         ),
                     },
-                    { key: 'verificar', label: 'Verificar', render: (row) => (row.verificar ? 'Sim' : 'Não') },
                     {
                         key: 'acoes',
                         label: 'Ações',
