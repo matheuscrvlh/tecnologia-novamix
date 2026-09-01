@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import PageShell from '../components/PageShell'
 import DataTable from '../components/DataTable'
+import Modal from '../components/Modal'
 import ConfirmModal from '../components/ConfirmModal'
 import ErrorModal from '../components/ErrorModal'
 import RowActions from '../components/RowActions'
@@ -253,11 +254,7 @@ export default function Gastos() {
             </div>
 
             {formAberto && (
-                <div className='mb-6 rounded-xl border border-gray-base/30 bg-white p-6 shadow-sm dark:border-dark-border dark:bg-dark-surface'>
-                    <h2 className='mb-4 text-sm font-semibold text-gray-text dark:text-dark-text'>
-                        {editandoId ? 'Editar gasto' : 'Novo gasto'}
-                    </h2>
-
+                <Modal titulo={editandoId ? 'Editar gasto' : 'Novo gasto'} onFechar={fecharForm} largura='lg'>
                     {erroForm && <ErrorModal mensagem={erroForm} onFechar={() => setErroForm(null)} />}
 
                     <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'>
@@ -395,7 +392,7 @@ export default function Gastos() {
                             Cancelar
                         </button>
                     </div>
-                </div>
+                </Modal>
             )}
 
             {erroExclusao && <ErrorModal mensagem={erroExclusao} onFechar={() => setErroExclusao(null)} />}

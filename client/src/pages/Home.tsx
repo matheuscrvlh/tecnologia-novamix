@@ -13,6 +13,9 @@ import {
     Boxes,
     Users,
     Receipt,
+    TrendingUp,
+    TrendingDown,
+    Minus,
 } from 'lucide-react'
 import PageShell from '../components/PageShell'
 import StatTile from '../components/StatTile'
@@ -69,6 +72,39 @@ function noMesAtual(data: string) {
     const agora = new Date()
     const [ano, mes] = data.slice(0, 10).split('-').map(Number)
     return ano === agora.getFullYear() && mes === agora.getMonth() + 1
+}
+
+function noMesAnterior(data: string) {
+    const agora = new Date()
+    const referencia = new Date(agora.getFullYear(), agora.getMonth() - 1, 1)
+    const [ano, mes] = data.slice(0, 10).split('-').map(Number)
+    return ano === referencia.getFullYear() && mes === referencia.getMonth() + 1
+}
+
+function DeltaBadge({ pct, subidaEBoa }: { pct: number | null; subidaEBoa: boolean }) {
+    if (pct === null) return null
+
+    const subiu = pct > 0.5
+    const desceu = pct < -0.5
+    const bom = subiu ? subidaEBoa : desceu ? !subidaEBoa : null
+
+    return (
+        <span
+            className={`flex shrink-0 items-center gap-1 text-xs font-semibold ${
+                bom === null ? 'text-gray-dark dark:text-dark-text-muted' : bom ? 'text-green-base' : 'text-red-base'
+            }`}
+        >
+            {subiu ? (
+                <TrendingUp className='h-3.5 w-3.5' />
+            ) : desceu ? (
+                <TrendingDown className='h-3.5 w-3.5' />
+            ) : (
+                <Minus className='h-3.5 w-3.5' />
+            )}
+            {pct > 0 ? '+' : ''}
+            {pct.toFixed(0)}%
+        </span>
+    )
 }
 
 function gastosPorMes(gastos: Gasto[], quantidadeMeses: number) {
@@ -168,6 +204,16 @@ export default function Home() {
 
     const gastoTotal = gastos.reduce((soma, g) => soma + Number(g.valor), 0)
     const gastoMesAtual = gastos.filter((g) => noMesAtual(g.data_gasto)).reduce((soma, g) => soma + Number(g.valor), 0)
+    const gastoMesAnterior = gastos
+        .filter((g) => noMesAnterior(g.data_gasto))
+        .reduce((soma, g) => soma + Number(g.valor), 0)
+    const deltaGastoMesPct = gastoMesAnterior > 0 ? ((gastoMesAtual - gastoMesAnterior) / gastoMesAnterior) * 100 : null
+
+    const maioresGastosDoMes = gastos
+        .filter((g) => noMesAtual(g.data_gasto))
+        .sort((a, b) => Number(b.valor) - Number(a.valor))
+        .slice(0, 5)
+        .map((g) => ({ label: g.fornecedor_nome ?? g.tipo, value: Number(g.valor) }))
 
     const equipamentosPorLoja = contarPor(equipamentos, (e) => e.loja_nome ?? 'Sem loja')
     const equipamentosPorTipo = contarPor(equipamentos, (e) => e.equipamento_nome ?? 'Sem tipo')
@@ -295,6 +341,7 @@ export default function Home() {
                                 value={formatCurrency(gastoMesAtual)}
                                 hint='mês atual'
                                 icon={CalendarRange}
+                                extra={<DeltaBadge pct={deltaGastoMesPct} subidaEBoa={false} />}
                             />
                             <StatTile
                                 label='Custo mensal recorrente'
@@ -332,6 +379,11 @@ export default function Home() {
                     <div>
                         <SectionHeader icon={Receipt} titulo='Gastos e contratos' />
                         <div className='grid grid-cols-1 gap-6 lg:grid-cols-2'>
+                            <BarList
+                                titulo='Maiores gastos do mês'
+                                itens={maioresGastosDoMes}
+                                formatarValor={formatCurrency}
+                            />
                             <BarList
                                 titulo='Maior custo recorrente por fornecedor'
                                 itens={custoRecorrentePorFornecedor}
