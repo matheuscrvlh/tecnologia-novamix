@@ -30,6 +30,7 @@ const FORM_VAZIO = {
     marca_id: '',
     modelo_id: '',
     ip: '',
+    codigo_aparelho: '',
     status: true,
     verificar: false,
 }
@@ -92,6 +93,7 @@ export default function Equipamentos() {
             marca_id: String(row.marca_id),
             modelo_id: String(row.modelo_id),
             ip: row.ip ?? '',
+            codigo_aparelho: row.codigo_aparelho ?? '',
             status: row.status,
             verificar: row.verificar,
         })
@@ -141,6 +143,7 @@ export default function Equipamentos() {
             marca_id: Number(form.marca_id),
             modelo_id: Number(form.modelo_id),
             ip: form.ip || null,
+            codigo_aparelho: form.codigo_aparelho || null,
             status: form.status,
             verificar: form.verificar,
         }
@@ -294,6 +297,14 @@ export default function Equipamentos() {
                                 onChange={(e) => setForm({ ...form, ip: e.target.value })}
                             />
                         </Field>
+                        <Field label='Código do aparelho (IMEI/Nº de série)'>
+                            <input
+                                type='text'
+                                className={inputClass}
+                                value={form.codigo_aparelho}
+                                onChange={(e) => setForm({ ...form, codigo_aparelho: e.target.value })}
+                            />
+                        </Field>
                         <label className='flex items-center gap-2 text-sm text-gray-text dark:text-dark-text'>
                             <input
                                 type='checkbox'
@@ -350,6 +361,7 @@ export default function Equipamentos() {
                     { key: 'marca', label: 'Marca', render: (row) => row.marca_nome ?? '-' },
                     { key: 'modelo', label: 'Modelo', render: (row) => row.modelo_nome ?? '-' },
                     { key: 'ip', label: 'IP', render: (row) => row.ip ?? '-' },
+                    { key: 'codigo_aparelho', label: 'Código do aparelho', render: (row) => row.codigo_aparelho ?? '-' },
                     {
                         key: 'status',
                         label: 'Status',

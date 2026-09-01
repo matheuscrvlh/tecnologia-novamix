@@ -52,6 +52,7 @@ export interface Equipamento {
     modelo_id: number
     modelo_nome: string | null
     ip: string | null
+    codigo_aparelho: string | null
     status: boolean
     verificar: boolean
     criado_em: string

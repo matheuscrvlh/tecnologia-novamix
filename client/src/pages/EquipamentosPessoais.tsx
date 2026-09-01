@@ -9,11 +9,12 @@ import FiltersMenu from '../components/FiltersMenu'
 import AnexoUpload from '../components/AnexoUpload'
 import FileField from '../components/FileField'
 import CellStack from '../components/CellStack'
+import PatrimonioSelect from '../components/PatrimonioSelect'
 import { useMe } from '../hooks/useMe'
 import { useLista } from '../hooks/useLista'
 import { apiPost, apiPut, apiDelete, apiUpload, apiFileUrl, ApiError } from '../lib/api'
 import { formatDate, formatPhoneInput } from '../lib/format'
-import type { EquipamentoPessoal, Loja, UsuarioHub } from '../types/tecnologia'
+import type { Equipamento, EquipamentoPessoal, Loja, UsuarioHub } from '../types/tecnologia'
 
 const STATUS_OPCOES = [
     { value: true, label: 'Ativo' },
@@ -46,6 +47,7 @@ export default function EquipamentosPessoais() {
     const { rows, loading, erro, recarregar } = useLista<EquipamentoPessoal>('/tecnologia/equipamentos-pessoais')
     const { rows: usuarios } = useLista<UsuarioHub>('/tecnologia/usuarios')
     const { rows: lojas } = useLista<Loja>('/tecnologia/lojas')
+    const { rows: equipamentos } = useLista<Equipamento>('/tecnologia/equipamentos')
 
     const [busca, setBusca] = useState('')
     const [formAberto, setFormAberto] = useState(false)
@@ -291,20 +293,29 @@ export default function EquipamentosPessoais() {
 
                     <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'>
                         <Field label='Patrimônio'>
-                            <input
-                                type='number'
-                                className={inputClass}
+                            <PatrimonioSelect
+                                equipamentos={equipamentos}
                                 value={form.patrimonio}
-                                onChange={(e) => setForm({ ...form, patrimonio: e.target.value })}
+                                onChangeValue={(patrimonio) => setForm({ ...form, patrimonio })}
+                                onSelecionar={(eq) =>
+                                    setForm({
+                                        ...form,
+                                        patrimonio: String(eq.patrimonio),
+                                        filial_id: String(eq.filial_id),
+                                        tipo: eq.equipamento_nome ?? '',
+                                        marca: eq.marca_nome ?? '',
+                                        modelo: eq.modelo_nome ?? '',
+                                    })
+                                }
                             />
                         </Field>
                         <Field label='Loja'>
                             <select
-                                className={inputClass}
+                                disabled
+                                className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
                                 value={form.filial_id}
-                                onChange={(e) => setForm({ ...form, filial_id: e.target.value })}
                             >
-                                <option value=''>Selecione...</option>
+                                <option value=''>Selecione o patrimônio...</option>
                                 {lojas.map((loja) => (
                                     <option key={loja.id} value={loja.id}>
                                         {loja.name}
@@ -314,26 +325,29 @@ export default function EquipamentosPessoais() {
                         </Field>
                         <Field label='Tipo'>
                             <input
+                                disabled
                                 type='text'
-                                className={inputClass}
+                                placeholder='Selecione o patrimônio...'
+                                className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
                                 value={form.tipo}
-                                onChange={(e) => setForm({ ...form, tipo: e.target.value })}
                             />
                         </Field>
                         <Field label='Marca'>
                             <input
+                                disabled
                                 type='text'
-                                className={inputClass}
+                                placeholder='Selecione o patrimônio...'
+                                className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
                                 value={form.marca}
-                                onChange={(e) => setForm({ ...form, marca: e.target.value })}
                             />
                         </Field>
                         <Field label='Modelo'>
                             <input
+                                disabled
                                 type='text'
-                                className={inputClass}
+                                placeholder='Selecione o patrimônio...'
+                                className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
                                 value={form.modelo}
-                                onChange={(e) => setForm({ ...form, modelo: e.target.value })}
                             />
                         </Field>
                         <Field label='Colaborador'>

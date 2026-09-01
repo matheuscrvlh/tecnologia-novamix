@@ -10,6 +10,7 @@ interface EquipamentoBody {
     marca_id?: number
     modelo_id?: number
     ip?: string | null
+    codigo_aparelho?: string | null
     status?: boolean
     verificar?: boolean
 }
@@ -70,8 +71,8 @@ export async function createEquipamento(req: FastifyRequest, res: FastifyReply) 
     const conn = await connHub()
     try {
         const { rows } = await conn.query(
-            `INSERT INTO tecnologia.equipamentos (patrimonio, filial_id, local_id, equipamento_id, marca_id, modelo_id, ip, status, verificar)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            `INSERT INTO tecnologia.equipamentos (patrimonio, filial_id, local_id, equipamento_id, marca_id, modelo_id, ip, codigo_aparelho, status, verificar)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
              RETURNING id`,
             [
                 body.patrimonio,
@@ -81,6 +82,7 @@ export async function createEquipamento(req: FastifyRequest, res: FastifyReply) 
                 body.marca_id,
                 body.modelo_id,
                 body.ip ?? null,
+                body.codigo_aparelho ?? null,
                 body.status ?? true,
                 body.verificar ?? false,
             ]
@@ -106,8 +108,8 @@ export async function updateEquipamento(req: FastifyRequest, res: FastifyReply) 
         const { rows } = await conn.query(
             `UPDATE tecnologia.equipamentos
              SET patrimonio = $1, filial_id = $2, local_id = $3, equipamento_id = $4, marca_id = $5,
-                 modelo_id = $6, ip = $7, status = $8, verificar = $9
-             WHERE id = $10
+                 modelo_id = $6, ip = $7, codigo_aparelho = $8, status = $9, verificar = $10
+             WHERE id = $11
              RETURNING id`,
             [
                 body.patrimonio,
@@ -117,6 +119,7 @@ export async function updateEquipamento(req: FastifyRequest, res: FastifyReply) 
                 body.marca_id,
                 body.modelo_id,
                 body.ip ?? null,
+                body.codigo_aparelho ?? null,
                 body.status ?? true,
                 body.verificar ?? false,
                 id,
