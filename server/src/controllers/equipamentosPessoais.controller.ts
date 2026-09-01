@@ -98,6 +98,10 @@ export async function createEquipamentoPessoal(req: FastifyRequest, res: Fastify
         const { rows: criado } = await conn.query(`${SELECT_COM_USUARIO} WHERE ep.id = $1`, [rows[0].id])
         res.code(201).send(criado[0])
     } catch (error: any) {
+        if (error?.code === '23505') {
+            res.code(400).send({ error: 'Já existe um equipamento pessoal cadastrado com esse patrimônio.' })
+            return
+        }
         if (error?.code === '23514') {
             res.code(400).send({ error: 'Dados inválidos para equipamento pessoal.' })
             return
@@ -151,6 +155,10 @@ export async function updateEquipamentoPessoal(req: FastifyRequest, res: Fastify
         const { rows: atualizado } = await conn.query(`${SELECT_COM_USUARIO} WHERE ep.id = $1`, [id])
         res.send(atualizado[0])
     } catch (error: any) {
+        if (error?.code === '23505') {
+            res.code(400).send({ error: 'Já existe um equipamento pessoal cadastrado com esse patrimônio.' })
+            return
+        }
         if (error?.code === '23514') {
             res.code(400).send({ error: 'Dados inválidos para equipamento pessoal.' })
             return

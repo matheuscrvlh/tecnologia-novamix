@@ -40,7 +40,7 @@ export type Area = CadastroSimples
 
 export interface Equipamento {
     id: number
-    patrimonio: number
+    patrimonio: number | null
     filial_id: number
     loja_nome: string | null
     local_id: number
@@ -53,6 +53,8 @@ export interface Equipamento {
     modelo_nome: string | null
     ip: string | null
     codigo_aparelho: string | null
+    observacao: string | null
+    terceirizado: boolean
     status: boolean
     verificar: boolean
     criado_em: string

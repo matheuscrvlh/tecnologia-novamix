@@ -2,6 +2,7 @@ import { useState } from 'react'
 import PageShell from '../components/PageShell'
 import DataTable from '../components/DataTable'
 import ConfirmModal from '../components/ConfirmModal'
+import ErrorModal from '../components/ErrorModal'
 import RowActions from '../components/RowActions'
 import Field, { inputClass } from '../components/Field'
 import SelectComNovo from '../components/SelectComNovo'
@@ -257,11 +258,7 @@ export default function Gastos() {
                         {editandoId ? 'Editar gasto' : 'Novo gasto'}
                     </h2>
 
-                    {erroForm && (
-                        <div className='mb-4 rounded-lg bg-red-light/10 px-4 py-3 text-sm font-medium text-red-base'>
-                            {erroForm}
-                        </div>
-                    )}
+                    {erroForm && <ErrorModal mensagem={erroForm} onFechar={() => setErroForm(null)} />}
 
                     <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'>
                         <FornecedorSelect
@@ -291,11 +288,13 @@ export default function Gastos() {
                                 onChange={(e) => setForm({ ...form, patrimonio: e.target.value })}
                             >
                                 <option value=''>Nenhum</option>
-                                {equipamentos.map((eq) => (
-                                    <option key={eq.id} value={eq.patrimonio}>
-                                        {eq.patrimonio} - {eq.equipamento_nome} ({eq.loja_nome ?? '-'})
-                                    </option>
-                                ))}
+                                {equipamentos
+                                    .filter((eq): eq is Equipamento & { patrimonio: number } => eq.patrimonio !== null)
+                                    .map((eq) => (
+                                        <option key={eq.id} value={eq.patrimonio}>
+                                            {eq.patrimonio} - {eq.equipamento_nome} ({eq.loja_nome ?? '-'})
+                                        </option>
+                                    ))}
                             </select>
                         </Field>
                         <Field label='Tipo'>
@@ -399,11 +398,7 @@ export default function Gastos() {
                 </div>
             )}
 
-            {erroExclusao && (
-                <div className='mb-4 rounded-lg bg-red-light/10 px-4 py-3 text-sm font-medium text-red-base'>
-                    {erroExclusao}
-                </div>
-            )}
+            {erroExclusao && <ErrorModal mensagem={erroExclusao} onFechar={() => setErroExclusao(null)} />}
 
             <DataTable
                 loading={loading}

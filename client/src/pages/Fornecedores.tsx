@@ -2,6 +2,7 @@ import { useState } from 'react'
 import DataTable from '../components/DataTable'
 import Modal from '../components/Modal'
 import ConfirmModal from '../components/ConfirmModal'
+import ErrorModal from '../components/ErrorModal'
 import RowActions from '../components/RowActions'
 import Field, { inputClass } from '../components/Field'
 import SelectFilter from '../components/SelectFilter'
@@ -159,11 +160,7 @@ export default function Fornecedores() {
                 </button>
             </div>
 
-            {erroExclusao && (
-                <div className='mb-4 rounded-lg bg-red-light/10 px-4 py-3 text-sm font-medium text-red-base'>
-                    {erroExclusao}
-                </div>
-            )}
+            {erroExclusao && <ErrorModal mensagem={erroExclusao} onFechar={() => setErroExclusao(null)} />}
 
             <DataTable
                 loading={loading}
@@ -202,11 +199,7 @@ export default function Fornecedores() {
 
             {formAberto && (
                 <Modal titulo={editandoId ? 'Editar fornecedor' : 'Novo fornecedor'} onFechar={fecharForm}>
-                    {erroForm && (
-                        <div className='mb-4 rounded-lg bg-red-light/10 px-4 py-3 text-sm font-medium text-red-base'>
-                            {erroForm}
-                        </div>
-                    )}
+                    {erroForm && <ErrorModal mensagem={erroForm} onFechar={() => setErroForm(null)} />}
 
                     <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
                         <Field label='Empresa'>

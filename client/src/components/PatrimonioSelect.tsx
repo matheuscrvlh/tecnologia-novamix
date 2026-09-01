@@ -23,15 +23,17 @@ export default function PatrimonioSelect({ equipamentos, value, onChangeValue, o
         return () => document.removeEventListener('mousedown', onClickFora)
     }, [])
 
+    const comPatrimonio = equipamentos.filter((eq): eq is Equipamento & { patrimonio: number } => eq.patrimonio !== null)
+
     const termo = value.trim().toLowerCase()
     const opcoes = termo
-        ? equipamentos.filter((eq) =>
+        ? comPatrimonio.filter((eq) =>
               [eq.patrimonio, eq.equipamento_nome, eq.marca_nome, eq.modelo_nome, eq.loja_nome]
                   .join(' ')
                   .toLowerCase()
                   .includes(termo)
           )
-        : equipamentos
+        : comPatrimonio
 
     function selecionar(eq: Equipamento) {
         onSelecionar(eq)

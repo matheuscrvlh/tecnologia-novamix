@@ -2,6 +2,7 @@ import { useState } from 'react'
 import PageShell from '../components/PageShell'
 import DataTable from '../components/DataTable'
 import ConfirmModal from '../components/ConfirmModal'
+import ErrorModal from '../components/ErrorModal'
 import RowActions from '../components/RowActions'
 import Field, { inputClass } from '../components/Field'
 import SelectComNovo from '../components/SelectComNovo'
@@ -31,6 +32,8 @@ const FORM_VAZIO = {
     modelo_id: '',
     ip: '',
     codigo_aparelho: '',
+    observacao: '',
+    terceirizado: false,
     status: true,
     verificar: false,
 }
@@ -60,15 +63,26 @@ export default function Equipamentos() {
     const [lojaFiltro, setLojaFiltro] = useState<number | 'all'>('all')
     const [statusFiltro, setStatusFiltro] = useState<boolean | 'all'>(true)
     const [verificarFiltro, setVerificarFiltro] = useState<boolean | 'all'>('all')
+    const [tipoFiltro, setTipoFiltro] = useState<number | 'all'>('all')
+    const [marcaFiltro, setMarcaFiltro] = useState<number | 'all'>('all')
+    const [modeloFiltro, setModeloFiltro] = useState<number | 'all'>('all')
 
     const filtrosAtivos =
-        (lojaFiltro !== 'all' ? 1 : 0) + (statusFiltro !== 'all' ? 1 : 0) + (verificarFiltro !== 'all' ? 1 : 0)
+        (lojaFiltro !== 'all' ? 1 : 0) +
+        (statusFiltro !== 'all' ? 1 : 0) +
+        (verificarFiltro !== 'all' ? 1 : 0) +
+        (tipoFiltro !== 'all' ? 1 : 0) +
+        (marcaFiltro !== 'all' ? 1 : 0) +
+        (modeloFiltro !== 'all' ? 1 : 0)
 
     const termo = busca.trim().toLowerCase()
     const rowsFiltradas = rows.filter((row) => {
         if (lojaFiltro !== 'all' && row.filial_id !== lojaFiltro) return false
         if (statusFiltro !== 'all' && row.status !== statusFiltro) return false
         if (verificarFiltro !== 'all' && row.verificar !== verificarFiltro) return false
+        if (tipoFiltro !== 'all' && row.equipamento_id !== tipoFiltro) return false
+        if (marcaFiltro !== 'all' && row.marca_id !== marcaFiltro) return false
+        if (modeloFiltro !== 'all' && row.modelo_id !== modeloFiltro) return false
         if (!termo) return true
         return [row.patrimonio, row.loja_nome, row.local_nome, row.equipamento_nome, row.marca_nome, row.modelo_nome]
             .join(' ')
@@ -86,7 +100,7 @@ export default function Equipamentos() {
     function abrirEdicao(row: Equipamento) {
         setEditandoId(row.id)
         setForm({
-            patrimonio: String(row.patrimonio),
+            patrimonio: row.patrimonio !== null ? String(row.patrimonio) : '',
             filial_id: String(row.filial_id),
             local_id: String(row.local_id),
             equipamento_id: String(row.equipamento_id),
@@ -94,6 +108,8 @@ export default function Equipamentos() {
             modelo_id: String(row.modelo_id),
             ip: row.ip ?? '',
             codigo_aparelho: row.codigo_aparelho ?? '',
+            observacao: row.observacao ?? '',
+            terceirizado: row.terceirizado,
             status: row.status,
             verificar: row.verificar,
         })
@@ -106,7 +122,21 @@ export default function Equipamentos() {
         setEditandoId(null)
     }
 
+    function alternarTerceirizado(terceirizado: boolean) {
+        setForm({
+            ...form,
+            terceirizado,
+            patrimonio: terceirizado ? '' : form.patrimonio,
+            codigo_aparelho: terceirizado ? '' : form.codigo_aparelho,
+        })
+    }
+
     async function salvar() {
+        if (!form.terceirizado && !form.patrimonio.trim()) {
+            setErroForm('Informe o patrimônio ou marque o equipamento como terceirizado.')
+            return
+        }
+
         if (!form.filial_id) {
             setErroForm('Selecione uma loja.')
             return
@@ -136,14 +166,16 @@ export default function Equipamentos() {
         setErroForm(null)
 
         const payload = {
-            patrimonio: Number(form.patrimonio),
+            patrimonio: form.terceirizado ? null : Number(form.patrimonio),
             filial_id: Number(form.filial_id),
             local_id: Number(form.local_id),
             equipamento_id: Number(form.equipamento_id),
             marca_id: Number(form.marca_id),
             modelo_id: Number(form.modelo_id),
             ip: form.ip || null,
-            codigo_aparelho: form.codigo_aparelho || null,
+            codigo_aparelho: form.terceirizado ? null : form.codigo_aparelho || null,
+            observacao: form.observacao || null,
+            terceirizado: form.terceirizado,
             status: form.status,
             verificar: form.verificar,
         }
@@ -212,6 +244,24 @@ export default function Equipamentos() {
                         value={lojaFiltro}
                         onChange={setLojaFiltro}
                     />
+                    <SelectFilter
+                        label='Tipo'
+                        options={tiposEquipamento.map((tipo) => ({ value: tipo.id, label: tipo.nome }))}
+                        value={tipoFiltro}
+                        onChange={setTipoFiltro}
+                    />
+                    <SelectFilter
+                        label='Marca'
+                        options={marcas.map((marca) => ({ value: marca.id, label: marca.nome }))}
+                        value={marcaFiltro}
+                        onChange={setMarcaFiltro}
+                    />
+                    <SelectFilter
+                        label='Modelo'
+                        options={modelos.map((modelo) => ({ value: modelo.id, label: modelo.nome }))}
+                        value={modeloFiltro}
+                        onChange={setModeloFiltro}
+                    />
                     <SelectFilter label='Status' options={STATUS_OPCOES} value={statusFiltro} onChange={setStatusFiltro} />
                     <SelectFilter
                         label='Verificar'
@@ -228,17 +278,24 @@ export default function Equipamentos() {
                         {editandoId ? 'Editar equipamento' : 'Novo equipamento'}
                     </h2>
 
-                    {erroForm && (
-                        <div className='mb-4 rounded-lg bg-red-light/10 px-4 py-3 text-sm font-medium text-red-base'>
-                            {erroForm}
-                        </div>
-                    )}
+                    {erroForm && <ErrorModal mensagem={erroForm} onFechar={() => setErroForm(null)} />}
+
+                    <label className='mb-4 flex items-center gap-2 text-sm text-gray-text dark:text-dark-text'>
+                        <input
+                            type='checkbox'
+                            checked={form.terceirizado}
+                            onChange={(e) => alternarTerceirizado(e.target.checked)}
+                        />
+                        Aparelho terceirizado (sem patrimônio/código do aparelho)
+                    </label>
 
                     <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'>
                         <Field label='Patrimônio'>
                             <input
+                                disabled={form.terceirizado}
                                 type='number'
-                                className={inputClass}
+                                placeholder={form.terceirizado ? 'Terceirizado' : undefined}
+                                className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
                                 value={form.patrimonio}
                                 onChange={(e) => setForm({ ...form, patrimonio: e.target.value })}
                             />
@@ -299,8 +356,10 @@ export default function Equipamentos() {
                         </Field>
                         <Field label='Código do aparelho (IMEI/Nº de série)'>
                             <input
+                                disabled={form.terceirizado}
                                 type='text'
-                                className={inputClass}
+                                placeholder={form.terceirizado ? 'Terceirizado' : undefined}
+                                className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-60`}
                                 value={form.codigo_aparelho}
                                 onChange={(e) => setForm({ ...form, codigo_aparelho: e.target.value })}
                             />
@@ -321,6 +380,16 @@ export default function Equipamentos() {
                             />
                             Necessita verificação
                         </label>
+                        <div className='sm:col-span-2 lg:col-span-3'>
+                            <Field label='Observação (opcional)'>
+                                <input
+                                    type='text'
+                                    className={inputClass}
+                                    value={form.observacao}
+                                    onChange={(e) => setForm({ ...form, observacao: e.target.value })}
+                                />
+                            </Field>
+                        </div>
                     </div>
 
                     <div className='mt-6 flex items-center gap-3'>
@@ -343,18 +412,18 @@ export default function Equipamentos() {
                 </div>
             )}
 
-            {erroExclusao && (
-                <div className='mb-4 rounded-lg bg-red-light/10 px-4 py-3 text-sm font-medium text-red-base'>
-                    {erroExclusao}
-                </div>
-            )}
+            {erroExclusao && <ErrorModal mensagem={erroExclusao} onFechar={() => setErroExclusao(null)} />}
 
             <DataTable
                 loading={loading}
                 erro={erro}
                 rows={rowsFiltradas}
                 columns={[
-                    { key: 'patrimonio', label: 'Patrimônio', render: (row) => row.patrimonio },
+                    {
+                        key: 'patrimonio',
+                        label: 'Patrimônio',
+                        render: (row) => row.patrimonio ?? (row.terceirizado ? 'Terceirizado' : '-'),
+                    },
                     { key: 'loja', label: 'Loja', render: (row) => row.loja_nome ?? '-' },
                     { key: 'local', label: 'Local', render: (row) => row.local_nome ?? '-' },
                     { key: 'equipamento', label: 'Equipamento', render: (row) => row.equipamento_nome ?? '-' },
@@ -362,6 +431,7 @@ export default function Equipamentos() {
                     { key: 'modelo', label: 'Modelo', render: (row) => row.modelo_nome ?? '-' },
                     { key: 'ip', label: 'IP', render: (row) => row.ip ?? '-' },
                     { key: 'codigo_aparelho', label: 'Código do aparelho', render: (row) => row.codigo_aparelho ?? '-' },
+                    { key: 'observacao', label: 'Observação', wrap: true, render: (row) => row.observacao ?? '-' },
                     {
                         key: 'status',
                         label: 'Status',
@@ -392,7 +462,9 @@ export default function Equipamentos() {
             {paraExcluir && (
                 <ConfirmModal
                     titulo='Excluir equipamento'
-                    mensagem={`Excluir o equipamento de patrimônio ${paraExcluir.patrimonio}? Essa ação não pode ser desfeita.`}
+                    mensagem={`Excluir o equipamento ${
+                        paraExcluir.patrimonio !== null ? `de patrimônio ${paraExcluir.patrimonio}` : 'terceirizado'
+                    }? Essa ação não pode ser desfeita.`}
                     confirmando={excluindo}
                     onConfirmar={confirmarExclusao}
                     onCancelar={() => setParaExcluir(null)}

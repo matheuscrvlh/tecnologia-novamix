@@ -2,6 +2,7 @@ import { useState } from 'react'
 import PageShell from '../components/PageShell'
 import DataTable from '../components/DataTable'
 import ConfirmModal from '../components/ConfirmModal'
+import ErrorModal from '../components/ErrorModal'
 import RowActions from '../components/RowActions'
 import Field, { inputClass } from '../components/Field'
 import SelectComNovo from '../components/SelectComNovo'
@@ -245,11 +246,7 @@ export default function Contratos() {
                         {editandoId ? 'Editar contrato' : 'Novo contrato'}
                     </h2>
 
-                    {erroForm && (
-                        <div className='mb-4 rounded-lg bg-red-light/10 px-4 py-3 text-sm font-medium text-red-base'>
-                            {erroForm}
-                        </div>
-                    )}
+                    {erroForm && <ErrorModal mensagem={erroForm} onFechar={() => setErroForm(null)} />}
 
                     <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'>
                         <FornecedorSelect
@@ -359,11 +356,7 @@ export default function Contratos() {
                 </div>
             )}
 
-            {erroExclusao && (
-                <div className='mb-4 rounded-lg bg-red-light/10 px-4 py-3 text-sm font-medium text-red-base'>
-                    {erroExclusao}
-                </div>
-            )}
+            {erroExclusao && <ErrorModal mensagem={erroExclusao} onFechar={() => setErroExclusao(null)} />}
 
             <DataTable
                 loading={loading}

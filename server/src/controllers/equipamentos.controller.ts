@@ -3,7 +3,7 @@ import { checkPermission } from '../middlewares/auth.middlewares'
 import { connHub } from '../database/hub.database'
 
 interface EquipamentoBody {
-    patrimonio?: number
+    patrimonio?: number | null
     filial_id?: number
     local_id?: number
     equipamento_id?: number
@@ -11,18 +11,13 @@ interface EquipamentoBody {
     modelo_id?: number
     ip?: string | null
     codigo_aparelho?: string | null
+    observacao?: string | null
+    terceirizado?: boolean
     status?: boolean
     verificar?: boolean
 }
 
-const CAMPOS_OBRIGATORIOS = [
-    'patrimonio',
-    'filial_id',
-    'local_id',
-    'equipamento_id',
-    'marca_id',
-    'modelo_id',
-] as const
+const CAMPOS_OBRIGATORIOS = ['filial_id', 'local_id', 'equipamento_id', 'marca_id', 'modelo_id'] as const
 
 function validarCampos(body: EquipamentoBody, res: FastifyReply) {
     const faltando = CAMPOS_OBRIGATORIOS.filter(
@@ -34,7 +29,24 @@ function validarCampos(body: EquipamentoBody, res: FastifyReply) {
         return false
     }
 
+    if (!body.terceirizado && (body.patrimonio === undefined || body.patrimonio === null || (body.patrimonio as unknown) === '')) {
+        res.code(400).send({ error: 'Informe o patrimônio ou marque o equipamento como terceirizado.' })
+        return false
+    }
+
     return true
+}
+
+function tratarErroBanco(error: any, res: FastifyReply) {
+    if (error?.code === '23505') {
+        res.code(400).send({ error: 'Já existe um equipamento cadastrado com esse patrimônio.' })
+        return true
+    }
+    if (error?.code === '22P02') {
+        res.code(400).send({ error: 'IP inválido.' })
+        return true
+    }
+    return false
 }
 
 const SELECT_COM_FILIAL = `
@@ -71,11 +83,12 @@ export async function createEquipamento(req: FastifyRequest, res: FastifyReply) 
     const conn = await connHub()
     try {
         const { rows } = await conn.query(
-            `INSERT INTO tecnologia.equipamentos (patrimonio, filial_id, local_id, equipamento_id, marca_id, modelo_id, ip, codigo_aparelho, status, verificar)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            `INSERT INTO tecnologia.equipamentos
+                (patrimonio, filial_id, local_id, equipamento_id, marca_id, modelo_id, ip, codigo_aparelho, observacao, terceirizado, status, verificar)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
              RETURNING id`,
             [
-                body.patrimonio,
+                body.terceirizado ? null : body.patrimonio,
                 body.filial_id,
                 body.local_id,
                 body.equipamento_id,
@@ -83,6 +96,8 @@ export async function createEquipamento(req: FastifyRequest, res: FastifyReply) 
                 body.modelo_id,
                 body.ip ?? null,
                 body.codigo_aparelho ?? null,
+                body.observacao ?? null,
+                body.terceirizado ?? false,
                 body.status ?? true,
                 body.verificar ?? false,
             ]
@@ -90,6 +105,9 @@ export async function createEquipamento(req: FastifyRequest, res: FastifyReply) 
 
         const { rows: criado } = await conn.query(`${SELECT_COM_FILIAL} WHERE e.id = $1`, [rows[0].id])
         res.code(201).send(criado[0])
+    } catch (error: any) {
+        if (tratarErroBanco(error, res)) return
+        throw error
     } finally {
         conn.release()
     }
@@ -108,11 +126,12 @@ export async function updateEquipamento(req: FastifyRequest, res: FastifyReply) 
         const { rows } = await conn.query(
             `UPDATE tecnologia.equipamentos
              SET patrimonio = $1, filial_id = $2, local_id = $3, equipamento_id = $4, marca_id = $5,
-                 modelo_id = $6, ip = $7, codigo_aparelho = $8, status = $9, verificar = $10
-             WHERE id = $11
+                 modelo_id = $6, ip = $7, codigo_aparelho = $8, observacao = $9, terceirizado = $10,
+                 status = $11, verificar = $12
+             WHERE id = $13
              RETURNING id`,
             [
-                body.patrimonio,
+                body.terceirizado ? null : body.patrimonio,
                 body.filial_id,
                 body.local_id,
                 body.equipamento_id,
@@ -120,6 +139,8 @@ export async function updateEquipamento(req: FastifyRequest, res: FastifyReply) 
                 body.modelo_id,
                 body.ip ?? null,
                 body.codigo_aparelho ?? null,
+                body.observacao ?? null,
+                body.terceirizado ?? false,
                 body.status ?? true,
                 body.verificar ?? false,
                 id,
@@ -133,6 +154,9 @@ export async function updateEquipamento(req: FastifyRequest, res: FastifyReply) 
 
         const { rows: atualizado } = await conn.query(`${SELECT_COM_FILIAL} WHERE e.id = $1`, [id])
         res.send(atualizado[0])
+    } catch (error: any) {
+        if (tratarErroBanco(error, res)) return
+        throw error
     } finally {
         conn.release()
     }
