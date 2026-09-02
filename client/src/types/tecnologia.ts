@@ -55,6 +55,9 @@ export interface Equipamento {
     codigo_aparelho: string | null
     observacao: string | null
     terceirizado: boolean
+    foto_nome: string | null
+    foto_mimetype: string | null
+    foto_enviado_em: string | null
     status: boolean
     verificar: boolean
     criado_em: string

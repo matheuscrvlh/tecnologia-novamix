@@ -10,9 +10,11 @@ import SelectComNovo from '../components/SelectComNovo'
 import SelectFilter from '../components/SelectFilter'
 import FiltersMenu from '../components/FiltersMenu'
 import CellStack from '../components/CellStack'
+import FileField from '../components/FileField'
+import AnexoUpload from '../components/AnexoUpload'
 import { useMe } from '../hooks/useMe'
 import { useLista } from '../hooks/useLista'
-import { apiPost, apiPut, apiDelete, ApiError } from '../lib/api'
+import { apiPost, apiPut, apiDelete, apiUpload, apiFileUrl, ApiError } from '../lib/api'
 import type { CadastroSimples, Equipamento, Loja } from '../types/tecnologia'
 
 const STATUS_OPCOES = [
@@ -55,6 +57,8 @@ export default function Equipamentos() {
     const [formAberto, setFormAberto] = useState(false)
     const [editandoId, setEditandoId] = useState<number | null>(null)
     const [form, setForm] = useState(FORM_VAZIO)
+    const [foto, setFoto] = useState<File | null>(null)
+    const [fotoAtual, setFotoAtual] = useState<string | null>(null)
     const [salvando, setSalvando] = useState(false)
     const [erroForm, setErroForm] = useState<string | null>(null)
 
@@ -95,6 +99,8 @@ export default function Equipamentos() {
     function abrirNovo() {
         setEditandoId(null)
         setForm(FORM_VAZIO)
+        setFoto(null)
+        setFotoAtual(null)
         setErroForm(null)
         setFormAberto(true)
     }
@@ -115,6 +121,8 @@ export default function Equipamentos() {
             status: row.status,
             verificar: row.verificar,
         })
+        setFoto(null)
+        setFotoAtual(row.foto_nome)
         setErroForm(null)
         setFormAberto(true)
     }
@@ -122,6 +130,8 @@ export default function Equipamentos() {
     function fecharForm() {
         setFormAberto(false)
         setEditandoId(null)
+        setFoto(null)
+        setFotoAtual(null)
     }
 
     function alternarTerceirizado(terceirizado: boolean) {
@@ -183,11 +193,18 @@ export default function Equipamentos() {
         }
 
         try {
+            let id = editandoId
             if (editandoId) {
                 await apiPut(`/tecnologia/equipamentos/${editandoId}`, payload)
             } else {
-                await apiPost('/tecnologia/equipamentos', payload)
+                const criado = await apiPost<Equipamento>('/tecnologia/equipamentos', payload)
+                id = criado.id
             }
+
+            if (foto && id) {
+                await apiUpload(`/tecnologia/equipamentos/${id}/foto`, foto)
+            }
+
             fecharForm()
             await recarregar()
         } catch (err) {
@@ -212,6 +229,16 @@ export default function Equipamentos() {
         } finally {
             setExcluindo(false)
         }
+    }
+
+    async function enviarFoto(id: number, file: File) {
+        await apiUpload(`/tecnologia/equipamentos/${id}/foto`, file)
+        await recarregar()
+    }
+
+    async function removerFoto(id: number) {
+        await apiDelete(`/tecnologia/equipamentos/${id}/foto`)
+        await recarregar()
     }
 
     return (
@@ -388,6 +415,14 @@ export default function Equipamentos() {
                                 />
                             </Field>
                         </div>
+                        <div className='sm:col-span-2 lg:col-span-3'>
+                            <FileField
+                                label='Foto do equipamento (opcional)'
+                                arquivo={foto}
+                                onChange={setFoto}
+                                nomeAtual={fotoAtual}
+                            />
+                        </div>
                     </div>
 
                     <div className='mt-6 flex items-center gap-3'>
@@ -447,6 +482,23 @@ export default function Equipamentos() {
                         render: (row) => <CellStack primary={row.ip ?? '-'} secondary={row.codigo_aparelho} />,
                     },
                     { key: 'observacao', label: 'Observação', wrap: true, render: (row) => row.observacao ?? '-' },
+                    {
+                        key: 'foto',
+                        label: 'Foto',
+                        align: 'right',
+                        render: (row) => (
+                            <AnexoUpload
+                                nomeArquivo={row.foto_nome}
+                                mimetype={row.foto_mimetype}
+                                urlVisualizar={apiFileUrl(`/tecnologia/equipamentos/${row.id}/foto`)}
+                                urlBaixar={apiFileUrl(`/tecnologia/equipamentos/${row.id}/foto`, true)}
+                                onUpload={(file) => enviarFoto(row.id, file)}
+                                onRemover={() => removerFoto(row.id)}
+                                rotulo='foto'
+                                mostrarNome={false}
+                            />
+                        ),
+                    },
                     {
                         key: 'status',
                         label: 'Status',

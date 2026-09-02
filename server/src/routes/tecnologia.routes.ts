@@ -15,6 +15,9 @@ import {
     createEquipamento,
     updateEquipamento,
     deleteEquipamento,
+    uploadFotoEquipamento,
+    getFotoEquipamento,
+    deleteFotoEquipamento,
 } from '../controllers/equipamentos.controller'
 import {
     getEquipamentosPessoais,
@@ -92,6 +95,9 @@ export function tecnologiaRoutes(fastify) {
     fastify.post('/tecnologia/equipamentos', { preHandler: [authenticate] }, createEquipamento)
     fastify.put('/tecnologia/equipamentos/:id', { preHandler: [authenticate] }, updateEquipamento)
     fastify.delete('/tecnologia/equipamentos/:id', { preHandler: [authenticate] }, deleteEquipamento)
+    fastify.post('/tecnologia/equipamentos/:id/foto', { preHandler: [authenticate] }, uploadFotoEquipamento)
+    fastify.get('/tecnologia/equipamentos/:id/foto', { preHandler: [authenticate] }, getFotoEquipamento)
+    fastify.delete('/tecnologia/equipamentos/:id/foto', { preHandler: [authenticate] }, deleteFotoEquipamento)
 
     fastify.get('/tecnologia/equipamentos-pessoais', { preHandler: [authenticate] }, getEquipamentosPessoais)
     fastify.post('/tecnologia/equipamentos-pessoais', { preHandler: [authenticate] }, createEquipamentoPessoal)

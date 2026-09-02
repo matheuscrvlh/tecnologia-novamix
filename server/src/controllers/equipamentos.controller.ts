@@ -1,6 +1,7 @@
 import type { FastifyRequest, FastifyReply } from 'fastify'
 import { checkPermission } from '../middlewares/auth.middlewares'
 import { connHub } from '../database/hub.database'
+import { salvarArquivoUpload, removerArquivo, enviarArquivo } from '../utils/upload'
 
 interface EquipamentoBody {
     patrimonio?: number | null
@@ -172,6 +173,107 @@ export async function deleteEquipamento(req: FastifyRequest, res: FastifyReply) 
     try {
         await conn.query('DELETE FROM tecnologia.equipamentos WHERE id = $1', [id])
         res.code(204).send()
+    } finally {
+        conn.release()
+    }
+}
+
+export async function uploadFotoEquipamento(req: FastifyRequest, res: FastifyReply) {
+    const permission = await checkPermission(req, res)
+    if (!permission) return
+
+    const { id } = req.params as { id: string }
+
+    const conn = await connHub()
+    try {
+        const { rows: existente } = await conn.query(
+            'SELECT foto_caminho FROM tecnologia.equipamentos WHERE id = $1',
+            [id]
+        )
+        if (existente.length === 0) {
+            res.code(404).send({ error: 'Equipamento não encontrado.' })
+            return
+        }
+
+        let foto
+        try {
+            foto = await salvarArquivoUpload(req, 'equipamentos')
+        } catch (err: any) {
+            res.code(err.statusCode ?? 400).send({ error: err.message ?? 'Erro ao enviar arquivo.' })
+            return
+        }
+
+        await removerArquivo(existente[0].foto_caminho)
+
+        const { rows } = await conn.query(
+            `UPDATE tecnologia.equipamentos
+             SET foto_nome = $1, foto_caminho = $2, foto_mimetype = $3, foto_enviado_em = NOW()
+             WHERE id = $4
+             RETURNING id`,
+            [foto.nomeOriginal, foto.caminhoRelativo, foto.mimetype, id]
+        )
+
+        const { rows: atualizado } = await conn.query(`${SELECT_COM_FILIAL} WHERE e.id = $1`, [rows[0].id])
+        res.send(atualizado[0])
+    } finally {
+        conn.release()
+    }
+}
+
+export async function getFotoEquipamento(req: FastifyRequest, res: FastifyReply) {
+    const permission = await checkPermission(req, res)
+    if (!permission) return
+
+    const { id } = req.params as { id: string }
+    const { baixar } = req.query as { baixar?: string }
+
+    const conn = await connHub()
+    try {
+        const { rows } = await conn.query(
+            'SELECT foto_nome, foto_caminho, foto_mimetype FROM tecnologia.equipamentos WHERE id = $1',
+            [id]
+        )
+
+        if (rows.length === 0 || !rows[0].foto_caminho) {
+            res.code(404).send({ error: 'Foto não encontrada.' })
+            return
+        }
+
+        await enviarArquivo(res, rows[0].foto_caminho, rows[0].foto_nome, rows[0].foto_mimetype, baixar === '1')
+    } finally {
+        conn.release()
+    }
+}
+
+export async function deleteFotoEquipamento(req: FastifyRequest, res: FastifyReply) {
+    const permission = await checkPermission(req, res)
+    if (!permission) return
+
+    const { id } = req.params as { id: string }
+
+    const conn = await connHub()
+    try {
+        const { rows: existente } = await conn.query(
+            'SELECT foto_caminho FROM tecnologia.equipamentos WHERE id = $1',
+            [id]
+        )
+        if (existente.length === 0) {
+            res.code(404).send({ error: 'Equipamento não encontrado.' })
+            return
+        }
+
+        await removerArquivo(existente[0].foto_caminho)
+
+        const { rows } = await conn.query(
+            `UPDATE tecnologia.equipamentos
+             SET foto_nome = NULL, foto_caminho = NULL, foto_mimetype = NULL, foto_enviado_em = NULL
+             WHERE id = $1
+             RETURNING id`,
+            [id]
+        )
+
+        const { rows: atualizado } = await conn.query(`${SELECT_COM_FILIAL} WHERE e.id = $1`, [rows[0].id])
+        res.send(atualizado[0])
     } finally {
         conn.release()
     }
