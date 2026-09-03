@@ -2,16 +2,17 @@ import { useRef } from 'react'
 import { Upload, X } from 'lucide-react'
 import Field, { inputClass } from './Field'
 
-const ACCEPT = '.pdf,.jpg,.jpeg,.png,.doc,.docx'
+const ACCEPT_PADRAO = '.pdf,.jpg,.jpeg,.png,.heic,.heif,.doc,.docx'
 
 type FileFieldProps = {
     label: string
     arquivo: File | null
     onChange: (file: File | null) => void
     nomeAtual?: string | null
+    accept?: string
 }
 
-export default function FileField({ label, arquivo, onChange, nomeAtual }: FileFieldProps) {
+export default function FileField({ label, arquivo, onChange, nomeAtual, accept = ACCEPT_PADRAO }: FileFieldProps) {
     const inputRef = useRef<HTMLInputElement>(null)
 
     return (
@@ -41,7 +42,7 @@ export default function FileField({ label, arquivo, onChange, nomeAtual }: FileF
                 <input
                     ref={inputRef}
                     type='file'
-                    accept={ACCEPT}
+                    accept={accept}
                     className='hidden'
                     onChange={(e) => onChange(e.target.files?.[0] ?? null)}
                 />

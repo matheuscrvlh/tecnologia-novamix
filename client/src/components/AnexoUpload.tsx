@@ -3,7 +3,7 @@ import { Upload, Eye, Download, RefreshCw, Trash2, FileText } from 'lucide-react
 import Modal from './Modal'
 import Spinner from './Spinner'
 
-const ACCEPT = '.pdf,.jpg,.jpeg,.png,.doc,.docx'
+const ACCEPT_PADRAO = '.pdf,.jpg,.jpeg,.png,.heic,.heif,.doc,.docx'
 
 type AnexoUploadProps = {
     nomeArquivo: string | null
@@ -15,6 +15,7 @@ type AnexoUploadProps = {
     somenteLeitura?: boolean
     rotulo?: string
     mostrarNome?: boolean
+    accept?: string
 }
 
 export default function AnexoUpload({
@@ -27,6 +28,7 @@ export default function AnexoUpload({
     somenteLeitura,
     rotulo = 'documento',
     mostrarNome = true,
+    accept = ACCEPT_PADRAO,
 }: AnexoUploadProps) {
     const inputRef = useRef<HTMLInputElement>(null)
     const [enviando, setEnviando] = useState(false)
@@ -63,7 +65,9 @@ export default function AnexoUpload({
         }
     }
 
-    const isImagem = mimetype?.startsWith('image/')
+    // HEIC/HEIF não renderiza em <img> na maioria dos navegadores (Chrome, Firefox, Edge) -
+    // cai na mensagem de "pré-visualização indisponível" em vez de mostrar imagem quebrada.
+    const isImagem = mimetype?.startsWith('image/') && mimetype !== 'image/heic' && mimetype !== 'image/heif'
     const isPdf = mimetype === 'application/pdf'
 
     if (!nomeArquivo) {
@@ -82,7 +86,7 @@ export default function AnexoUpload({
                     </button>
                 )}
                 {somenteLeitura && <span className='text-xs text-gray-dark dark:text-dark-text-muted'>-</span>}
-                <input ref={inputRef} type='file' accept={ACCEPT} className='hidden' onChange={handleArquivoSelecionado} />
+                <input ref={inputRef} type='file' accept={accept} className='hidden' onChange={handleArquivoSelecionado} />
                 {erro && <span className='max-w-[160px] text-right text-xs text-red-base'>{erro}</span>}
             </div>
         )
@@ -149,7 +153,7 @@ export default function AnexoUpload({
                         <input
                             ref={inputRef}
                             type='file'
-                            accept={ACCEPT}
+                            accept={accept}
                             className='hidden'
                             onChange={handleArquivoSelecionado}
                         />

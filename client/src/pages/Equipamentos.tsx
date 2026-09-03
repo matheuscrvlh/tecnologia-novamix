@@ -421,6 +421,7 @@ export default function Equipamentos() {
                                 arquivo={foto}
                                 onChange={setFoto}
                                 nomeAtual={fotoAtual}
+                                accept='image/*'
                             />
                         </div>
                     </div>
@@ -496,6 +497,7 @@ export default function Equipamentos() {
                                 onRemover={() => removerFoto(row.id)}
                                 rotulo='foto'
                                 mostrarNome={false}
+                                accept='image/*'
                             />
                         ),
                     },

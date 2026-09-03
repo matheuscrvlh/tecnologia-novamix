@@ -7,8 +7,34 @@ import type { FastifyRequest, FastifyReply } from 'fastify'
 
 export const UPLOADS_ROOT = path.resolve(process.cwd(), 'uploads')
 
-const EXTENSOES_PERMITIDAS = new Set(['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx'])
-const TAMANHO_MAXIMO_BYTES = 15 * 1024 * 1024
+const EXTENSOES_PERMITIDAS = new Set([
+    '.pdf',
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.heic',
+    '.heif',
+    '.webp',
+    '.doc',
+    '.docx',
+])
+
+// Fotos tiradas direto pela câmera do celular costumam vir com um nome de
+// arquivo genérico (ou sem extensão reconhecida) — nesse caso usamos o
+// mimetype informado pelo navegador, que é sempre confiável.
+const EXTENSAO_POR_MIMETYPE: Record<string, string> = {
+    'image/jpeg': '.jpg',
+    'image/jpg': '.jpg',
+    'image/png': '.png',
+    'image/heic': '.heic',
+    'image/heif': '.heif',
+    'image/webp': '.webp',
+    'application/pdf': '.pdf',
+    'application/msword': '.doc',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+}
+
+const TAMANHO_MAXIMO_BYTES = 25 * 1024 * 1024
 
 export interface ArquivoSalvo {
     nomeOriginal: string
@@ -24,9 +50,13 @@ export async function salvarArquivoUpload(req: FastifyRequest, pasta: string): P
         throw { statusCode: 400, message: 'Nenhum arquivo enviado.' }
     }
 
-    const extensao = path.extname(part.filename).toLowerCase()
-    if (!EXTENSOES_PERMITIDAS.has(extensao)) {
-        throw { statusCode: 400, message: 'Tipo de arquivo não permitido. Use PDF, imagem ou documento do Word.' }
+    const extensaoDoNome = path.extname(part.filename ?? '').toLowerCase()
+    const extensao = EXTENSOES_PERMITIDAS.has(extensaoDoNome)
+        ? extensaoDoNome
+        : EXTENSAO_POR_MIMETYPE[part.mimetype?.toLowerCase()]
+
+    if (!extensao) {
+        throw { statusCode: 400, message: 'Tipo de arquivo não permitido. Use PDF, imagem (inclusive HEIC) ou documento do Word.' }
     }
 
     const destinoDir = path.join(UPLOADS_ROOT, pasta)
@@ -38,12 +68,12 @@ export async function salvarArquivoUpload(req: FastifyRequest, pasta: string): P
     try {
         await pipeline(part.file, createWriteStream(caminhoAbsoluto))
     } catch {
-        throw { statusCode: 400, message: 'Erro ao salvar o arquivo. Verifique o tamanho (máx. 15MB).' }
+        throw { statusCode: 400, message: 'Erro ao salvar o arquivo. Verifique o tamanho (máx. 25MB).' }
     }
 
     if (part.file.truncated) {
         await unlink(caminhoAbsoluto).catch(() => {})
-        throw { statusCode: 400, message: 'Arquivo excede o tamanho máximo de 15MB.' }
+        throw { statusCode: 400, message: 'Arquivo excede o tamanho máximo de 25MB.' }
     }
 
     return {
