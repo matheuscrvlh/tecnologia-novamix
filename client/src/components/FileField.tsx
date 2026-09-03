@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Upload, X } from 'lucide-react'
 import Field, { inputClass } from './Field'
 
@@ -14,10 +14,23 @@ type FileFieldProps = {
 
 export default function FileField({ label, arquivo, onChange, nomeAtual, accept = ACCEPT_PADRAO }: FileFieldProps) {
     const inputRef = useRef<HTMLInputElement>(null)
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+
+    useEffect(() => {
+        if (!arquivo || !arquivo.type.startsWith('image/')) {
+            setPreviewUrl(null)
+            return
+        }
+
+        const url = URL.createObjectURL(arquivo)
+        setPreviewUrl(url)
+        return () => URL.revokeObjectURL(url)
+    }, [arquivo])
 
     return (
         <Field label={label}>
             <div className='flex items-center gap-2'>
+                {previewUrl && <img src={previewUrl} alt='' className='h-10 w-10 shrink-0 rounded-lg object-cover' />}
                 <button
                     type='button'
                     onClick={() => inputRef.current?.click()}

@@ -49,8 +49,8 @@ export default function SelectComNovo({ label, endpoint, itens, recarregar, valu
     return (
         <div>
             <Field label={label}>
-                <div className='flex gap-2'>
-                    <select className={`${inputClass} flex-1`} value={value} onChange={(e) => onChange(e.target.value)}>
+                <div className='flex flex-col gap-2 sm:flex-row'>
+                    <select className={`${inputClass} sm:flex-1`} value={value} onChange={(e) => onChange(e.target.value)}>
                         <option value=''>Selecione...</option>
                         {opcoes.map((item) => (
                             <option key={item.id} value={item.id}>
@@ -61,7 +61,7 @@ export default function SelectComNovo({ label, endpoint, itens, recarregar, valu
                     <button
                         type='button'
                         onClick={() => setNovoAberto((v) => !v)}
-                        className='rounded-lg border border-orange-base px-3 text-sm font-semibold text-orange-base transition-colors hover:bg-orange-base/10'
+                        className='rounded-lg border border-orange-base px-3 py-2 text-sm font-semibold text-orange-base transition-colors hover:bg-orange-base/10'
                     >
                         + novo
                     </button>
@@ -69,8 +69,8 @@ export default function SelectComNovo({ label, endpoint, itens, recarregar, valu
             </Field>
 
             {novoAberto && (
-                <div className='mt-2 flex items-start gap-2'>
-                    <div className='flex-1'>
+                <div className='mt-2 flex flex-col gap-2'>
+                    <div>
                         <input
                             type='text'
                             className={`${inputClass} w-full`}
@@ -80,25 +80,27 @@ export default function SelectComNovo({ label, endpoint, itens, recarregar, valu
                         />
                         {erro && <p className='mt-1 text-xs font-medium text-red-base'>{erro}</p>}
                     </div>
-                    <button
-                        type='button'
-                        disabled={salvando}
-                        onClick={salvarNovo}
-                        className='rounded-lg bg-orange-base px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-light disabled:opacity-60'
-                    >
-                        {salvando ? 'Salvando...' : 'Salvar'}
-                    </button>
-                    <button
-                        type='button'
-                        onClick={() => {
-                            setNovoAberto(false)
-                            setErro(null)
-                            setNovoNome('')
-                        }}
-                        className='rounded-lg px-3 py-2 text-sm font-semibold text-gray-text transition-colors hover:bg-gray dark:text-dark-text dark:hover:bg-dark-surface-2'
-                    >
-                        Cancelar
-                    </button>
+                    <div className='flex items-center gap-2'>
+                        <button
+                            type='button'
+                            disabled={salvando}
+                            onClick={salvarNovo}
+                            className='rounded-lg bg-orange-base px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-light disabled:opacity-60'
+                        >
+                            {salvando ? 'Salvando...' : 'Salvar'}
+                        </button>
+                        <button
+                            type='button'
+                            onClick={() => {
+                                setNovoAberto(false)
+                                setErro(null)
+                                setNovoNome('')
+                            }}
+                            className='rounded-lg px-3 py-2 text-sm font-semibold text-gray-text transition-colors hover:bg-gray dark:text-dark-text dark:hover:bg-dark-surface-2'
+                        >
+                            Cancelar
+                        </button>
+                    </div>
                 </div>
             )}
         </div>
